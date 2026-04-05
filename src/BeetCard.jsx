@@ -1,40 +1,37 @@
-import React from 'react';
+import * as React from "react";
+import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 
-const statusColors = {
-  gepflanzt: 'bg-green-100 text-green-700',
-  erntbar: 'bg-yellow-100 text-yellow-600',
-  faellig: 'bg-red-100 text-red-700',
+const statusIcon = (status, erntbarVon, monat) => {
+  if (status.includes("gepflanzt")) return <span title="gepflanzt" aria-label="gepflanzt" className="mr-1">🌱</span>;
+  if (erntbarVon && erntbarVon.toLowerCase() === monat.toLowerCase()) return <span title="erntbar" aria-label="erntbar" className="mr-1">🥬</span>;
+  if (status.toLowerCase().includes("fällig")) return <span title="fällig" aria-label="fällig" className="mr-1">⏰</span>;
+  return null;
 };
 
-function getStatusColor(status, erntbarVon, monat) {
-  if (status.includes('gepflanzt')) return statusColors.gepflanzt;
-  if (erntbarVon && erntbarVon.toLowerCase() === monat.toLowerCase()) return statusColors.erntbar;
-  if (status.toLowerCase().includes('fällig')) return statusColors.faellig;
-  return 'bg-gray-100 text-gray-800';
-}
-
 export default function BeetCard({ beet, onClick, monat }) {
-  const color = getStatusColor(beet.status, beet.erntbarVon, monat);
   return (
-    <div
-      className={`card-min cursor-pointer group ${color}`}
+    <Card
+      className="cursor-pointer hover:ring-2 hover:ring-green-400 transition"
       onClick={onClick}
       tabIndex={0}
       role="button"
-      aria-label={`Details zu Beet ${beet.beet}: ${beet.pflanze}`}
+      aria-label={`Details zu ${beet.name}`}
     >
-      <div className="flex items-center gap-3 mb-2">
-        <span className="inline-block w-8 h-8 rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center font-bold text-green-800 dark:text-green-200 text-lg shadow-sm border border-green-300 dark:border-green-700">{beet.beet}</span>
-        <h3 className="font-semibold text-xl tracking-tight flex-1">{beet.pflanze}</h3>
-      </div>
-      <div className="space-y-1">
-        <div className="text-xs text-gray-700 dark:text-gray-300">Status:</div>
-        <div className="font-medium text-sm mb-1 text-gray-900 dark:text-gray-100">{beet.status}</div>
-        <div className="text-xs text-gray-700 dark:text-gray-300">Nächste Aktion:</div>
-        <div className="text-sm mb-1 text-gray-900 dark:text-gray-100">{beet.naechsteAktion}</div>
-        <div className="text-xs text-gray-700 dark:text-gray-300">Erntbar ab:</div>
-        <div className="text-sm text-gray-900 dark:text-gray-100">{beet.erntbarVon}</div>
-      </div>
-    </div>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <span className="inline-block w-8 h-8 rounded-full bg-green-200 dark:bg-green-800 flex items-center justify-center font-bold text-green-800 dark:text-green-200 text-lg shadow-sm border border-green-300 dark:border-green-700">{beet.beet}</span>
+          {beet.name}
+        </CardTitle>
+        <CardDescription>
+          <div className="flex items-center text-base font-medium mb-1">
+            {statusIcon(beet.status, beet.erntbarVon, monat)}
+            {beet.status}
+          </div>
+          <div className="text-xs text-gray-700 dark:text-gray-300">Aktuell: {beet.aktuellePflanzen.join(", ")}</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300">Nächste Aktion: {beet.naechsteAktion}</div>
+          <div className="text-xs text-gray-700 dark:text-gray-300">Erntbar ab: {beet.erntbarVon}</div>
+        </CardDescription>
+      </CardHeader>
+    </Card>
   );
 }
