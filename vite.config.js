@@ -1,7 +1,5 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-
-// https://vite.dev/config/
 import { fileURLToPath, URL } from 'url';
 
 export default defineConfig({
@@ -11,9 +9,12 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
   },
+  test: {
+    environment: 'node',
+  },
   server: {
-    host: true, // bindet auf 0.0.0.0 → im ganzen Netz erreichbar
+    host: true,
     port: 5173,
-    allowedHosts: true, // ngrok und andere Tunnel-URLs zulassen
+    allowedHosts: true,
   },
 })
