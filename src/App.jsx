@@ -1856,6 +1856,29 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                 ))}
               </div>
             </div>
+            {/* Pflanzendarstellung */}
+            <div className="mb-4">
+              <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">Pflanzendarstellung</div>
+              <div className="flex gap-2">
+                {[
+                  { key: 'anordnen', label: '⠿ Anordnen', desc: 'Grid + DnD' },
+                  { key: 'bearbeiten', label: '✏️ Bearbeiten', desc: 'Details + Edit' },
+                ].map(({ key, label, desc }) => (
+                  <button
+                    key={key}
+                    onClick={() => setPflanzModus(key)}
+                    className={`flex-1 flex flex-col items-center px-2 py-2 rounded-lg border text-xs font-medium transition-colors ${
+                      pflanzModus === key
+                        ? 'bg-green-600 text-white border-transparent'
+                        : 'border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-400'
+                    }`}
+                  >
+                    <span className="text-base mb-0.5 whitespace-nowrap">{label}</span>
+                    <span className={`text-[10px] font-normal whitespace-nowrap ${pflanzModus === key ? 'opacity-80' : 'text-gray-400 dark:text-gray-500'}`}>{desc}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
             {/* Legende Kartenumrandung */}
             <div className="mb-4">
               <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">Legende Umrandung</div>

@@ -6,6 +6,19 @@ import { pflanzDatenbank, findPflanze, getNeighborRelation } from '../data/plant
 const DE_MONATE = ['', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
   'Juli', 'August', 'September', 'Oktober', 'November', 'Dezember'];
 
+function findPflanzeInBeete(name, beete) {
+  if (!beete) return null;
+  const lc = name.toLowerCase().trim();
+  for (const beet of beete) {
+    const found = (beet.pflanzen || []).find(p => {
+      if (typeof p === 'string') return p.toLowerCase() === lc;
+      return p.name.toLowerCase() === lc || (p.name.toLowerCase().includes(lc) && lc.length >= 4);
+    });
+    if (found && typeof found === 'object') return { ...found, beetLabel: beet.label };
+  }
+  return null;
+}
+
 // ── Regelmaschine ─────────────────────────────────────────────────────────────
 
 function antwort(text, beete, selectedDate) {
@@ -20,21 +33,29 @@ function antwort(text, beete, selectedDate) {
     : lc.match(/pflanzzeit|wann pflanzen|wann s[äa]en/) ? null : null;
 
   if (pflanzMatch) {
-    const info = findPflanze(pflanzMatch[1].trim());
+    const suchName = pflanzMatch[1].trim();
+    const beetEntry = findPflanzeInBeete(suchName, beete);
+    const info = beetEntry || findPflanze(suchName);
     if (info) {
-      const monate = info.pflanzMonate.map(m => DE_MONATE[m]).join(', ');
-      return `${info.icon} **${info.name}** wird am besten in folgenden Monaten gepflanzt: **${monate}**.\n\n💡 ${info.hinweis}`;
+      const monate = (info.pflanzMonate || []).map(m => DE_MONATE[m]).join(', ');
+      const hinweis = info.hinweis ? `\n\n💡 ${info.hinweis}` : '';
+      return `${info.icon} **${info.name}** wird am besten in folgenden Monaten gepflanzt: **${monate || '–'}**.${hinweis}`;
     }
-    return `Ich habe „${pflanzMatch[1]}" nicht in meiner Datenbank. Versuche es mit dem genauen Gemüsenamen.`;
+    return `Ich habe „${suchName}" nicht in meiner Datenbank. Versuche es mit dem genauen Gemüsenamen.`;
   }
 
   // ── Erntezeit abfragen ─────
   const ernteMatch = lc.match(/wann (?:ernte|ernten|geerntet)(?:e ich)?\s+(.+?)[\?\s]*$/) ||
     lc.match(/ernte(?:zeit)?\s+(?:von |bei )?\s*(.+?)[\?\s]*$/);
   if (ernteMatch) {
-    const info = findPflanze(ernteMatch[1].trim());
+    const suchName = ernteMatch[1].trim();
+    const beetEntry = findPflanzeInBeete(suchName, beete);
+    const info = beetEntry || findPflanze(suchName);
     if (info) {
-      return `${info.icon} **${info.name}** ist erntereif: **${info.ernteBeschreibung}**\n\nNach der Ernte eignet sich als Nachkultur: ${info.naechsteKultur}`;
+      const ernte = beetEntry?.ernte || info.ernteBeschreibung || '–';
+      const naechste = beetEntry?.naechsteKultur || info.naechsteKultur || '–';
+      const beetHinweis = beetEntry?.beetLabel ? ` (in ${beetEntry.beetLabel})` : '';
+      return `${info.icon} **${info.name}**${beetHinweis}: **${ernte}**\n\nNach der Ernte eignet sich als Nachkultur: ${naechste}`;
     }
   }
 
