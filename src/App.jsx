@@ -11,6 +11,9 @@ import { lsGet, lsSet, getProfilePin, setProfilePin } from './lib/storage.js';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
+import { migratePflanzenZuObjekte, pflanzeName } from './lib/plantMigration.js';
+import PflanzenGrid from './components/PflanzenGrid.jsx';
+import PflanzeEditDialog from './components/PflanzeEditDialog.jsx';
 
 
 // Anbaubeginn
@@ -139,7 +142,10 @@ function fetchWetter(lat, lon, onData, onLaden, onFehler) {
 }
 
 function berechneGiessIntervall(pflanzen) {
-  const intervalle = pflanzen.map(p => findPflanze(p)?.giessIntervall).filter(Boolean);
+  const intervalle = pflanzen.map(p => {
+    if (typeof p === 'string') return findPflanze(p)?.giessIntervall ?? null;
+    return p.giessIntervall ?? null;
+  }).filter(v => v !== null);
   return intervalle.length ? Math.min(...intervalle) : 3;
 }
 
@@ -282,7 +288,8 @@ function PflanzenBadges({ pflanzen, gepflanzt, selectedDate }) {
   return (
     <div className="flex flex-wrap gap-1 mt-2">
       {pflanzen.map((p) => {
-        const { relation, gutMit, schlechtMit } = getNeighborRelation(p, pflanzen);
+        const name = pflanzeName(p);
+        const { relation, gutMit, schlechtMit } = getNeighborRelation(name, pflanzen.map(pflanzeName));
         let ringClass = '';
         let tooltipParts = [];
         if (relation === 'gut') {
@@ -292,7 +299,7 @@ function PflanzenBadges({ pflanzen, gepflanzt, selectedDate }) {
           ringClass = 'ring-2 ring-red-500';
           if (schlechtMit.length) tooltipParts.push(`✗ Nicht mit: ${schlechtMit.join(', ')}`);
         }
-        const info = findPflanze(p);
+        const info = findPflanze(name);
         let erntereif = false;
         if (info && gepflanzt && selectedDate) {
           const ernteStart = addMonths(parseISO(gepflanzt), info.ernteanfangOffset);
@@ -300,10 +307,10 @@ function PflanzenBadges({ pflanzen, gepflanzt, selectedDate }) {
           erntereif = selectedDate >= ernteStart && selectedDate <= ernteEnde;
         }
         const title = (erntereif ? '🌾 Erntereif! ' : '') +
-          (tooltipParts.join(' · ') || (info ? `${info.icon} ${p}` : p));
+          (tooltipParts.join(' · ') || (info ? `${info.icon} ${name}` : name));
         return (
           <span
-            key={p}
+            key={name}
             title={title}
             className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded text-xs font-medium cursor-default transition-colors ${ringClass} ${
               erntereif
@@ -311,7 +318,7 @@ function PflanzenBadges({ pflanzen, gepflanzt, selectedDate }) {
                 : 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
             }`}
           >
-            {erntereif ? '🌾' : (info ? info.icon : '')}{' '}{p}
+            {erntereif ? '🌾' : (info ? info.icon : '')}{' '}{name}
           </span>
         );
       })}
@@ -1354,9 +1361,11 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     try {
       const saved = lsGet('beete', profileId);
       const version = lsGet('beetDataVersion', profileId);
-      if (saved && version === GARDEN_DATA_VERSION) return JSON.parse(saved);
-    } catch {}
-    return profileId === 'waschtl' ? initialGardenData : [];
+      const parsed = saved && version === GARDEN_DATA_VERSION ? JSON.parse(saved) : (profileId === 'waschtl' ? initialGardenData : []);
+      return migratePflanzenZuObjekte(parsed);
+    } catch {
+      return migratePflanzenZuObjekte(profileId === 'waschtl' ? initialGardenData : []);
+    }
   });
   const [selectedDate, setSelectedDate] = useState(today);
   const [pdfOffen, setPdfOffen] = useState(false);
@@ -1415,6 +1424,8 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
   const [kartenAnsicht, setKartenAnsicht] = useState(() => localStorage.getItem('kartenAnsicht') || 'minimal');
   const [kartenLayout, setKartenLayout] = useState(() => localStorage.getItem('kartenLayout') || 'grid');
   const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'md');
+  const [pflanzModus, setPflanzModus] = useState(() => localStorage.getItem('pflanzModus') || 'anordnen');
+  const [editPflanze, setEditPflanze] = useState(null);
   // Beete persistent speichern
   useEffect(() => {
     try {
@@ -1449,6 +1460,10 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     document.documentElement.setAttribute('data-font-size', fontSize);
     localStorage.setItem('fontSize', fontSize);
   }, [fontSize]);
+
+  useEffect(() => {
+    localStorage.setItem('pflanzModus', pflanzModus);
+  }, [pflanzModus]);
 
   // Systemschema-Änderungen live mitverfolgen (nur wenn kein manueller Override)
   useEffect(() => {
@@ -1609,6 +1624,10 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     const trimmed = newLabel.trim();
     setBeete(prev => prev.map(b => b.beet === beetId ? { ...b, label: trimmed || `Beet ${beetId}` } : b));
     setEditingLabel(null);
+  }
+
+  function updatePflanzenInBeet(beetId, neuePflanzen) {
+    setBeete(prev => prev.map(b => b.beet === beetId ? { ...b, pflanzen: neuePflanzen } : b));
   }
 
   function updateBeeetPflanzen(id, newPflanzen, newNaechste, newGepflanzt, newFaellig) {
@@ -2009,15 +2028,16 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
               const isFaellig = faelligTage >= 0 && faelligTage <= 14;
               const giessStatus = brauchtGiessen(beet, selectedDate, giessenLog, wetterDaten);
               const isExpanded = expandedBeet === beet.beet;
-              const hasKonflikt = beet.pflanzen.length > 1 && beet.pflanzen.some((a, i) => {
+              const pflanzenNamen = (beet.pflanzen || []).map(pflanzeName);
+              const hasKonflikt = pflanzenNamen.length > 1 && pflanzenNamen.some((a, i) => {
                 const infoA = findPflanze(a);
                 if (!infoA) return false;
-                return beet.pflanzen.some((b, j) => j > i && infoA.schlecht.some(s => s.toLowerCase() === b.toLowerCase()));
+                return pflanzenNamen.some((b, j) => j > i && infoA.schlecht.some(s => s.toLowerCase() === b.toLowerCase()));
               });
-              const hasGutNachbar = !hasKonflikt && beet.pflanzen.length > 1 && beet.pflanzen.some((a, i) => {
+              const hasGutNachbar = !hasKonflikt && pflanzenNamen.length > 1 && pflanzenNamen.some((a, i) => {
                 const infoA = findPflanze(a);
                 if (!infoA) return false;
-                return beet.pflanzen.some((b, j) => j > i && infoA.gut.some(g => g.toLowerCase() === b.toLowerCase()));
+                return pflanzenNamen.some((b, j) => j > i && infoA.gut.some(g => g.toLowerCase() === b.toLowerCase()));
               });
               return (
               <SortableBeetSlot key={beet.beet} id={beet.beet} kartenLayout={kartenLayout}>
@@ -2125,6 +2145,17 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                       {/* Inline-Expand */}
                       {isExpanded && (
                         <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2.5">
+                          <PflanzenGrid
+                            pflanzen={beet.pflanzen || []}
+                            modus={pflanzModus}
+                            selectedDate={selectedDate}
+                            giessenLog={giessenLog}
+                            wetterDaten={wetterDaten}
+                            beetId={beet.beet}
+                            onPflanzenChange={neuePflanzen => updatePflanzenInBeet(beet.beet, neuePflanzen)}
+                            onEditPflanze={pflanze => setEditPflanze({ beetId: beet.beet, pflanze })}
+                            onAddPflanze={() => setEditPflanze({ beetId: beet.beet, pflanze: null })}
+                          />
                           {beet.pflanzen?.length > 0 && (
                             <PflanzenBadges pflanzen={beet.pflanzen} gepflanzt={beet.gepflanzt} selectedDate={selectedDate} />
                           )}
@@ -2132,7 +2163,8 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                           {(() => {
                             const heuteDatum = format(selectedDate, 'yyyy-MM-dd');
                             const erntereif = (beet.pflanzen || []).filter(p => {
-                              const info = findPflanze(p);
+                              const name = pflanzeName(p);
+                              const info = findPflanze(name);
                               if (!info) return false;
                               const start = addMonths(parseISO(beet.gepflanzt), info.ernteanfangOffset);
                               return selectedDate >= start && selectedDate <= addMonths(start, info.erntedauer);
@@ -2143,12 +2175,13 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                                 <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">Ernte markieren:</div>
                                 <div className="flex flex-wrap gap-1.5">
                                   {erntereif.map(p => {
-                                    const info = findPflanze(p);
-                                    const istGeerntet = ernteLog.some(e => e.beetId === beet.beet && e.pflanze === p && e.datum === heuteDatum);
+                                    const name = pflanzeName(p);
+                                    const info = findPflanze(name);
+                                    const istGeerntet = ernteLog.some(e => e.beetId === beet.beet && e.pflanze === name && e.datum === heuteDatum);
                                     return (
                                       <button
-                                        key={p}
-                                        onClick={e => { e.stopPropagation(); handleErnte(beet.beet, p); }}
+                                        key={name}
+                                        onClick={e => { e.stopPropagation(); handleErnte(beet.beet, name); }}
                                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors ${
                                           istGeerntet
                                             ? 'bg-teal-100 dark:bg-teal-900/50 border-teal-400 text-teal-700 dark:text-teal-300'
@@ -2156,7 +2189,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                                         }`}
                                         title={istGeerntet ? 'Ernte rückgängig' : 'Als geerntet markieren'}
                                       >
-                                        {info?.icon || '🌾'} {p} {istGeerntet ? '✓' : '+'}
+                                        {info?.icon || '🌾'} {name} {istGeerntet ? '✓' : '+'}
                                       </button>
                                     );
                                   })}
@@ -2228,6 +2261,31 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
           </SortableContext>
           </DndContext>
         )}
+
+        <PflanzeEditDialog
+          open={editPflanze !== null}
+          pflanze={editPflanze?.pflanze ?? null}
+          onSave={saved => {
+            if (!editPflanze) return;
+            const { beetId, pflanze: alt } = editPflanze;
+            const beet = beete.find(b => b.beet === beetId);
+            if (!beet) return;
+            const neu = alt
+              ? beet.pflanzen.map(p => (p.id === alt.id ? saved : p))
+              : [...beet.pflanzen, saved];
+            updatePflanzenInBeet(beetId, neu);
+            setEditPflanze(null);
+          }}
+          onDelete={() => {
+            if (!editPflanze?.pflanze) return;
+            const { beetId, pflanze: alt } = editPflanze;
+            const beet = beete.find(b => b.beet === beetId);
+            if (!beet) return;
+            updatePflanzenInBeet(beetId, beet.pflanzen.filter(p => p.id !== alt.id));
+            setEditPflanze(null);
+          }}
+          onClose={() => setEditPflanze(null)}
+        />
 
         <div className="mt-8">
           <div className="flex items-center gap-1.5 mb-4">
