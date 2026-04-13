@@ -9,6 +9,7 @@ const USER_KEYS = new Set([
   'beetDataVersion',
   'archivierteBeete',
   'giessenLog',
+  'duengenLog',
   'pinnedBeete',
   'beetNotizen',
   'ernteLog',
