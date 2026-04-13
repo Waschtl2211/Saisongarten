@@ -28,6 +28,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'hoch',
     gut: ['Basilikum', 'Petersilie', 'Zwiebeln', 'Karotten', 'Knoblauch', 'Spinat'],
     schlecht: ['Fenchel', 'Kohlrabi', 'Brokkoli', 'Weißkohl'],
+    duenger: {
+      typ: ['Hornspäne', 'Tomatendünger'],
+      intervallWochen: 3,
+      hinweis: 'Beim Pflanzen Kompost einarbeiten, ab Fruchtbildung alle 3 Wochen Tomatendünger oder Hornspäne',
+    },
   },
   {
     name: 'Paprika',
@@ -43,6 +48,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'hoch',
     gut: ['Basilikum', 'Zwiebeln', 'Karotten', 'Petersilie'],
     schlecht: ['Fenchel'],
+    duenger: {
+      typ: ['Hornspäne', 'Flüssigdünger'],
+      intervallWochen: 3,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, ab Blüte alle 3 Wochen Flüssigdünger',
+    },
   },
   {
     name: 'Auberginen',
@@ -58,6 +68,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'hoch',
     gut: ['Basilikum', 'Petersilie', 'Bohnen'],
     schlecht: ['Fenchel'],
+    duenger: {
+      typ: ['Hornspäne', 'Flüssigdünger'],
+      intervallWochen: 3,
+      hinweis: 'Hornspäne beim Pflanzen, alle 3 Wochen Flüssigdünger während der Fruchtphase',
+    },
   },
   {
     name: 'Zucchini',
@@ -73,6 +88,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Kapuzinerkresse', 'Bohnen', 'Mais'],
     schlecht: ['Gurken', 'Kürbis'],
+    duenger: {
+      typ: ['Kompost', 'Flüssigdünger'],
+      intervallWochen: 4,
+      hinweis: 'Kompost beim Einpflanzen einarbeiten, alle 4 Wochen Flüssigdünger bei üppiger Frucht',
+    },
   },
   {
     name: 'Gurken',
@@ -88,6 +108,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'hoch',
     gut: ['Dill', 'Bohnen', 'Salat', 'Kohlrabi'],
     schlecht: ['Tomaten', 'Zucchini', 'Erbsen'],
+    duenger: {
+      typ: ['Hornspäne', 'Flüssigdünger'],
+      intervallWochen: 3,
+      hinweis: 'Hornspäne beim Pflanzen, alle 3 Wochen Gemüse-Flüssigdünger',
+    },
   },
   {
     name: 'Kürbis',
@@ -103,6 +128,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Mais', 'Bohnen'],
     schlecht: ['Zucchini', 'Gurken', 'Kartoffeln'],
+    duenger: {
+      typ: ['Kompost', 'Hornspäne'],
+      intervallWochen: 4,
+      hinweis: 'Großzügig Kompost beim Pflanzen einarbeiten, alle 4 Wochen Hornspäne nachdüngen',
+    },
   },
   {
     name: 'Buschbohnen',
@@ -118,6 +148,7 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Zucchini', 'Gurken', 'Karotten', 'Kopfsalat', 'Mangold', 'Mais'],
     schlecht: ['Zwiebeln', 'Knoblauch', 'Erbsen'],
+    duenger: null,
   },
   {
     name: 'Erbsen',
@@ -133,6 +164,7 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Karotten', 'Kopfsalat', 'Spinat', 'Kohlrabi', 'Radieschen'],
     schlecht: ['Buschbohnen', 'Zwiebeln', 'Knoblauch'],
+    duenger: null,
   },
   {
     name: 'Karotten',
@@ -148,6 +180,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Zwiebeln', 'Knoblauch', 'Tomaten', 'Salat', 'Erbsen', 'Radieschen'],
     schlecht: ['Fenchel', 'Dill', 'Petersilie'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost nur im Vorjahr oder Wochen vor der Aussaat einarbeiten – keine frische Düngung, sonst gabelige Wurzeln',
+    },
   },
   {
     name: 'Radieschen',
@@ -163,6 +200,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Karotten', 'Erbsen', 'Spinat', 'Kopfsalat'],
     schlecht: ['Gurken'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Leichten Kompost beim Beetvorbereiten einarbeiten – keine Extradüngung nötig',
+    },
   },
   {
     name: 'Kopfsalat',
@@ -178,6 +220,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Karotten', 'Radieschen', 'Gurken', 'Erdbeeren', 'Buschbohnen', 'Erbsen'],
     schlecht: ['Petersilie', 'Sellerie'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Einpflanzen einarbeiten – Überversorgung führt zu Nitrathäufung in Blättern',
+    },
   },
   {
     name: 'Feldsalat',
@@ -193,6 +240,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Spinat', 'Radieschen'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Leichten Kompost beim Beetvorbereiten einarbeiten – sehr genügsam',
+    },
   },
   {
     name: 'Spinat',
@@ -208,6 +260,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Erdbeeren', 'Tomaten', 'Karotten', 'Radieschen', 'Kopfsalat'],
     schlecht: ['Mangold', 'Rote Bete'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost oder Hornspäne beim Beetvorbereiten – kein weiterer Dünger nötig',
+    },
   },
   {
     name: 'Mangold',
@@ -223,6 +280,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Buschbohnen', 'Kohl', 'Kohlrabi'],
     schlecht: ['Spinat', 'Rote Bete'],
+    duenger: {
+      typ: ['Hornspäne', 'Kompost'],
+      intervallWochen: 6,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, alle 6 Wochen Kompost oder Hornspäne nachdüngen',
+    },
   },
   {
     name: 'Kohlrabi',
@@ -238,6 +300,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Gurken', 'Erbsen', 'Zwiebeln', 'Tomaten', 'Karotten'],
     schlecht: ['Tomaten', 'Paprika', 'Brokkoli'],
+    duenger: {
+      typ: ['Kompost', 'Hornspäne'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Einpflanzen einarbeiten – kein weiterer Dünger bei guter Bodenversorgung nötig',
+    },
   },
   {
     name: 'Brokkoli',
@@ -253,6 +320,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Sellerie', 'Zwiebeln', 'Mangold'],
     schlecht: ['Tomaten', 'Paprika', 'Kohlrabi'],
+    duenger: {
+      typ: ['Hornspäne', 'Volldünger'],
+      intervallWochen: 4,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, alle 4 Wochen Volldünger – hoher Stickstoffbedarf',
+    },
   },
   {
     name: 'Weißkohl',
@@ -268,6 +340,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Sellerie', 'Zwiebeln', 'Karotten'],
     schlecht: ['Tomaten', 'Erdbeeren'],
+    duenger: {
+      typ: ['Hornspäne', 'Volldünger'],
+      intervallWochen: 4,
+      hinweis: 'Hornspäne beim Pflanzen, alle 4 Wochen stickstoffreichen Volldünger – sehr stickstoffhungrig',
+    },
   },
   {
     name: 'Rote Bete',
@@ -283,6 +360,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Zwiebeln', 'Karotten', 'Kopfsalat', 'Kohlrabi'],
     schlecht: ['Spinat', 'Mangold'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Beetvorbereiten einarbeiten – kein Stickstoffüberschuss, sonst nur Laub statt Knolle',
+    },
   },
   {
     name: 'Zwiebeln',
@@ -298,6 +380,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Karotten', 'Tomaten', 'Paprika', 'Rote Bete', 'Kopfsalat', 'Kohlrabi'],
     schlecht: ['Buschbohnen', 'Erbsen', 'Knoblauch'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Beetvorbereiten einarbeiten – keine stickstoffreiche Düngung nach Mitte der Saison',
+    },
   },
   {
     name: 'Knoblauch',
@@ -313,6 +400,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Tomaten', 'Karotten', 'Erdbeeren'],
     schlecht: ['Buschbohnen', 'Erbsen', 'Zwiebeln'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Einpflanzen einarbeiten – sonst sehr genügsam',
+    },
   },
   {
     name: 'Petersilie',
@@ -328,6 +420,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Tomaten', 'Paprika', 'Spargel', 'Erdbeeren'],
     schlecht: ['Karotten', 'Kopfsalat'],
+    duenger: {
+      typ: ['Hornspäne', 'Kompost'],
+      intervallWochen: 8,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, alle 8 Wochen nachdüngen für kräftiges Wachstum',
+    },
   },
   {
     name: 'Schnittlauch',
@@ -343,6 +440,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Karotten', 'Tomaten', 'Erdbeeren'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – jedes Frühjahr Kompost einarbeiten, sonst sehr genügsam',
+    },
   },
   {
     name: 'Basilikum',
@@ -358,6 +460,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'hoch',
     gut: ['Tomaten', 'Paprika', 'Auberginen', 'Zucchini'],
     schlecht: ['Salvia', 'Thymian'],
+    duenger: {
+      typ: ['Flüssigdünger'],
+      intervallWochen: 3,
+      hinweis: 'Schwacher Flüssigdünger alle 3 Wochen – Überdüngen macht Blätter groß aber aromatlos',
+    },
   },
   {
     name: 'Dill',
@@ -373,6 +480,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Gurken', 'Kopfsalat', 'Zwiebeln'],
     schlecht: ['Karotten', 'Fenchel', 'Tomaten'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Leichten Kompost beim Beetvorbereiten einarbeiten – kein weiterer Dünger nötig',
+    },
   },
   {
     name: 'Porree',
@@ -388,6 +500,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Karotten', 'Sellerie', 'Tomaten'],
     schlecht: ['Erbsen', 'Buschbohnen'],
+    duenger: {
+      typ: ['Hornspäne', 'Kompost'],
+      intervallWochen: 6,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, alle 6 Wochen mit Kompost nachdüngen',
+    },
   },
   {
     name: 'Sellerie',
@@ -403,6 +520,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'hoch',
     gut: ['Brokkoli', 'Weißkohl', 'Tomaten', 'Porree'],
     schlecht: ['Kopfsalat', 'Kartoffeln'],
+    duenger: {
+      typ: ['Hornspäne', 'Kompost', 'Flüssigdünger'],
+      intervallWochen: 4,
+      hinweis: 'Viel Kompost beim Pflanzen, alle 4 Wochen Hornspäne oder Flüssigdünger – starker Zehrer',
+    },
   },
   {
     name: 'Grünkohl',
@@ -418,6 +540,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Sellerie', 'Zwiebeln', 'Karotten'],
     schlecht: ['Tomaten', 'Erdbeeren'],
+    duenger: {
+      typ: ['Hornspäne', 'Volldünger'],
+      intervallWochen: 6,
+      hinweis: 'Hornspäne beim Pflanzen, alle 6 Wochen Volldünger – hoher Stickstoffbedarf bei langer Standzeit',
+    },
   },
   {
     name: 'Fenchel',
@@ -433,6 +560,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Kopfsalat'],
     schlecht: ['Tomaten', 'Paprika', 'Karotten', 'Dill', 'Kohlrabi'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Einpflanzen einarbeiten – keine weitere Düngung nötig',
+    },
   },
   {
     name: 'Mais',
@@ -448,6 +580,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Zucchini', 'Buschbohnen', 'Kürbis'],
     schlecht: ['Tomaten'],
+    duenger: {
+      typ: ['Hornspäne', 'Volldünger'],
+      intervallWochen: 4,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, alle 4 Wochen stickstoffreichen Volldünger',
+    },
   },
   {
     name: 'Schalotten',
@@ -463,6 +600,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Karotten', 'Tomaten', 'Rote Bete', 'Kopfsalat'],
     schlecht: ['Buschbohnen', 'Erbsen'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Beetvorbereiten einarbeiten – keine weitere Düngung nötig',
+    },
   },
   {
     name: 'Chinakohl',
@@ -478,6 +620,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Sellerie', 'Zwiebeln', 'Dill'],
     schlecht: ['Tomaten'],
+    duenger: {
+      typ: ['Hornspäne', 'Kompost'],
+      intervallWochen: 4,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, alle 4 Wochen leichten Dünger für schnelles Wachstum',
+    },
   },
   {
     name: 'Spitzkohl',
@@ -493,6 +640,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Sellerie', 'Zwiebeln', 'Karotten'],
     schlecht: ['Tomaten'],
+    duenger: {
+      typ: ['Hornspäne', 'Volldünger'],
+      intervallWochen: 4,
+      hinweis: 'Hornspäne beim Pflanzen, alle 4 Wochen Volldünger nachdüngen',
+    },
   },
   {
     name: 'Mairübe',
@@ -508,6 +660,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Erbsen', 'Spinat', 'Kopfsalat'],
     schlecht: ['Tomaten'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Beetvorbereiten – keine Stickstoffdüngung, sonst nur Laub statt Rübe',
+    },
   },
   {
     name: 'Raddichio',
@@ -523,6 +680,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Karotten', 'Zwiebeln'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Einpflanzen – keine Extradüngung nötig',
+    },
   },
   {
     name: 'Wilde Rauke',
@@ -538,6 +700,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Karotten', 'Spinat', 'Kopfsalat'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Beetvorbereiten – sehr genügsam, kein Extradünger',
+    },
   },
   {
     name: 'Koriander',
@@ -553,6 +720,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Tomaten', 'Paprika', 'Kopfsalat'],
     schlecht: ['Fenchel'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Leichten Kompost einarbeiten – Überdüngen fördert vorzeitiges Schossen',
+    },
   },
   {
     name: 'Pimpinelle',
@@ -568,6 +740,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Kopfsalat', 'Radieschen', 'Karotten'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – leichten Kompost jährlich einarbeiten, sonst sehr genügsam',
+    },
   },
   {
     name: 'Blutampfer',
@@ -583,6 +760,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Petersilie', 'Schnittlauch', 'Kopfsalat'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – leichten Kompost jährlich im Frühjahr einarbeiten',
+    },
   },
   {
     name: 'Hirschhornwegerich',
@@ -598,6 +780,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Kopfsalat', 'Radieschen'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Leichten Kompost einarbeiten – sehr genügsam, kein Extradünger',
+    },
   },
   {
     name: 'Barbarakraut',
@@ -613,6 +800,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Kopfsalat', 'Spinat', 'Radieschen'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Beetvorbereiten – kein Extradünger nötig',
+    },
   },
   {
     name: 'Borretsch',
@@ -628,6 +820,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Tomaten', 'Gurken', 'Zucchini'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Beetvorbereiten – Überdüngen reduziert Blütenbildung',
+    },
   },
   {
     name: 'Ringelblume',
@@ -643,6 +840,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Tomaten', 'Karotten', 'Kopfsalat', 'Zwiebeln'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Leichten Kompost beim Beetvorbereiten – kein Dünger, sonst mehr Blatt als Blüte',
+    },
   },
   {
     name: 'Kornblume',
@@ -658,6 +860,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Kopfsalat', 'Karotten', 'Radieschen'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Leichten Kompost beim Beetvorbereiten – kein Dünger nötig',
+    },
   },
   {
     name: 'Speisechrysantheme',
@@ -673,6 +880,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Kopfsalat', 'Radieschen', 'Zwiebeln'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Pflanzen einarbeiten – einmalig Flüssigdünger wenn Wuchs nachlässt',
+    },
   },
   // ── Neu hinzugefügte Pflanzen ──────────────────────────────────────────────
   {
@@ -689,6 +901,7 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Zucchini', 'Gurken', 'Karotten', 'Kopfsalat', 'Mais'],
     schlecht: ['Zwiebeln', 'Knoblauch', 'Erbsen'],
+    duenger: null,
   },
   {
     name: 'Saubohnen',
@@ -704,6 +917,7 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Karotten', 'Kopfsalat', 'Spinat'],
     schlecht: ['Buschbohnen', 'Zwiebeln', 'Knoblauch'],
+    duenger: null,
   },
   {
     name: 'Rosenkohl',
@@ -719,6 +933,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Sellerie', 'Zwiebeln', 'Karotten', 'Dill'],
     schlecht: ['Tomaten', 'Erdbeeren', 'Kohlrabi'],
+    duenger: {
+      typ: ['Hornspäne', 'Volldünger'],
+      intervallWochen: 4,
+      hinweis: 'Hornspäne beim Pflanzen, alle 4 Wochen Volldünger – lange Standzeit braucht regelmäßige Versorgung',
+    },
   },
   {
     name: 'Blumenkohl',
@@ -734,6 +953,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Sellerie', 'Zwiebeln', 'Mangold'],
     schlecht: ['Tomaten', 'Kohlrabi', 'Erdbeeren'],
+    duenger: {
+      typ: ['Hornspäne', 'Volldünger'],
+      intervallWochen: 4,
+      hinweis: 'Hornspäne beim Pflanzen, alle 4 Wochen Volldünger – hoher Nährstoffbedarf',
+    },
   },
   {
     name: 'Pastinaken',
@@ -749,6 +973,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Zwiebeln', 'Erbsen', 'Karotten', 'Kopfsalat'],
     schlecht: ['Karotten', 'Petersilie'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost nur im Vorjahr einarbeiten – keine frische Düngung, sonst gabelige Wurzeln',
+    },
   },
   {
     name: 'Topinambur',
@@ -764,6 +993,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Karotten', 'Buschbohnen'],
     schlecht: ['Kartoffeln'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – sehr genügsam, leichten Kompost jährlich im Frühjahr einarbeiten',
+    },
   },
   {
     name: 'Erdbeeren',
@@ -779,6 +1013,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Knoblauch', 'Schnittlauch', 'Petersilie', 'Spinat', 'Kopfsalat', 'Ringelblume'],
     schlecht: ['Weißkohl', 'Grünkohl', 'Blumenkohl', 'Fenchel'],
+    duenger: {
+      typ: ['Hornspäne', 'Erdbeerdünger'],
+      intervallWochen: 8,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, nach der Ernte Erdbeerdünger oder Hornspäne alle 8 Wochen',
+    },
   },
   {
     name: 'Thymian',
@@ -794,6 +1033,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Tomaten', 'Zucchini', 'Kohl', 'Auberginen'],
     schlecht: ['Basilikum'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – sehr wenig Dünger, leichten Kompost nur jährlich im Frühjahr einarbeiten',
+    },
   },
   {
     name: 'Rosmarin',
@@ -809,6 +1053,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Tomaten', 'Kohl', 'Bohnen'],
     schlecht: ['Gurken', 'Kartoffeln'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – mager halten, jährlich leichten Kompost einarbeiten für bestes Aroma',
+    },
   },
   {
     name: 'Salbei',
@@ -824,6 +1073,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Kohl', 'Karotten', 'Tomaten', 'Erdbeeren'],
     schlecht: ['Basilikum', 'Zwiebeln'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – leichten Kompost jährlich im Frühjahr, mager halten für intensives Aroma',
+    },
   },
   {
     name: 'Oregano',
@@ -839,6 +1093,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Tomaten', 'Paprika', 'Zucchini', 'Kürbis'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – mager halten für starkes Aroma, leichten Kompost jährlich einarbeiten',
+    },
   },
   {
     name: 'Zitronenmelisse',
@@ -854,6 +1113,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Tomaten', 'Zucchini', 'Kohl'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost', 'Hornspäne'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – Hornspäne beim Frühjahrsschnitt einarbeiten, sonst genügsam',
+    },
   },
   {
     name: 'Pfefferminze',
@@ -869,6 +1133,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Kohl', 'Karotten', 'Erbsen', 'Tomaten'],
     schlecht: ['Petersilie', 'Kamille'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – leichten Kompost jährlich einarbeiten, wächst ohnehin sehr kräftig',
+    },
   },
   {
     name: 'Kapuzinerkresse',
@@ -884,6 +1153,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Tomaten', 'Gurken', 'Zucchini', 'Kohl', 'Radieschen'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kein Dünger – bei zu viel Stickstoff nur Blätter, keine Blüten',
+    },
   },
   {
     name: 'Endivie',
@@ -899,6 +1173,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Karotten', 'Zwiebeln', 'Dill'],
     schlecht: ['Petersilie'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Einpflanzen einarbeiten – keine Extradüngung nötig',
+    },
   },
   {
     name: 'Pak Choi',
@@ -914,6 +1193,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Dill', 'Sellerie', 'Zwiebeln'],
     schlecht: ['Tomaten'],
+    duenger: {
+      typ: ['Hornspäne', 'Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost und Hornspäne beim Pflanzen einarbeiten – Schnellkultur braucht kaum Nachdüngung',
+    },
   },
   {
     name: 'Liebstöckel',
@@ -929,6 +1213,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Tomaten', 'Bohnen', 'Karotten'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost', 'Hornspäne'],
+      intervallWochen: null,
+      hinweis: 'Mehrjährig – Hornspäne beim Frühjahrsaustritt einarbeiten, sonst sehr genügsam',
+    },
   },
   {
     name: 'Bohnenkraut',
@@ -944,6 +1233,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Buschbohnen', 'Stangenbohnen', 'Zwiebeln', 'Karotten'],
     schlecht: [],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Leichten Kompost beim Beetvorbereiten einarbeiten – kein Extradünger nötig',
+    },
   },
   {
     name: 'Schwarzwurzel',
@@ -959,6 +1253,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Zwiebeln', 'Karotten', 'Kopfsalat'],
     schlecht: ['Fenchel'],
+    duenger: {
+      typ: ['Kompost'],
+      intervallWochen: null,
+      hinweis: 'Kompost nur im Vorjahr einarbeiten – keine frische Düngung, sonst gabelige Wurzeln',
+    },
   },
   {
     name: 'Petersilienwurzel',
@@ -974,6 +1273,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'niedrig',
     gut: ['Tomaten', 'Karotten', 'Zwiebeln'],
     schlecht: ['Kopfsalat'],
+    duenger: {
+      typ: ['Kompost', 'Hornspäne'],
+      intervallWochen: null,
+      hinweis: 'Kompost beim Beetvorbereiten einarbeiten – keine frische Düngung kurz vor der Aussaat',
+    },
   },
   {
     name: 'Artischocke',
@@ -989,6 +1293,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'hoch',
     gut: ['Karotten', 'Zwiebeln', 'Kopfsalat'],
     schlecht: ['Kartoffeln'],
+    duenger: {
+      typ: ['Kompost', 'Hornspäne'],
+      intervallWochen: 4,
+      hinweis: 'Viel Kompost beim Pflanzen einarbeiten, alle 4 Wochen Hornspäne nachdüngen – starker Zehrer',
+    },
   },
   {
     name: 'Kartoffeln',
@@ -1004,6 +1313,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Buschbohnen', 'Kohl', 'Mais', 'Kapuzinerkresse'],
     schlecht: ['Tomaten', 'Kürbis', 'Sellerie', 'Topinambur'],
+    duenger: {
+      typ: ['Kompost', 'Volldünger'],
+      intervallWochen: 4,
+      hinweis: 'Kompost beim Häufeln einarbeiten, alle 4 Wochen Volldünger bis zur Blüte',
+    },
   },
   {
     name: 'Physalis',
@@ -1019,6 +1333,11 @@ export const pflanzDatenbank = [
     giessIntensität: 'mittel',
     gut: ['Basilikum', 'Zwiebeln', 'Karotten'],
     schlecht: ['Fenchel', 'Kartoffeln'],
+    duenger: {
+      typ: ['Hornspäne', 'Flüssigdünger'],
+      intervallWochen: 4,
+      hinweis: 'Hornspäne beim Pflanzen einarbeiten, alle 4 Wochen Flüssigdünger – wie Tomaten behandeln',
+    },
   },
 ];
 
