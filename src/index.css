@@ -164,3 +164,70 @@
     padding-right: 2rem !important;
   }
 }
+
+/* ── Sign-In Animation Keyframes ── */
+@keyframes fadeSlideIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0px);
+  }
+}
+
+@keyframes slideRightIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateX(0px);
+  }
+}
+
+@keyframes testimonialIn {
+  to {
+    opacity: 1;
+    filter: blur(0px);
+    transform: translateY(0px) scale(1);
+  }
+}
+
+@layer utilities {
+  .animate-element {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(8px);
+    animation: fadeSlideIn 0.6s ease forwards;
+  }
+
+  .animate-slide-right {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateX(-16px);
+    animation: slideRightIn 0.7s ease forwards;
+  }
+
+  .animate-testimonial {
+    opacity: 0;
+    filter: blur(4px);
+    transform: translateY(12px) scale(0.97);
+    animation: testimonialIn 0.6s ease forwards;
+  }
+
+  /* Animation delay utilities */
+  .animate-delay-100  { animation-delay: 100ms; }
+  .animate-delay-200  { animation-delay: 200ms; }
+  .animate-delay-300  { animation-delay: 300ms; }
+  .animate-delay-400  { animation-delay: 400ms; }
+  .animate-delay-500  { animation-delay: 500ms; }
+  .animate-delay-600  { animation-delay: 600ms; }
+  .animate-delay-700  { animation-delay: 700ms; }
+  .animate-delay-800  { animation-delay: 800ms; }
+  .animate-delay-900  { animation-delay: 900ms; }
+  .animate-delay-1000 { animation-delay: 1000ms; }
+  .animate-delay-1200 { animation-delay: 1200ms; }
+  .animate-delay-1400 { animation-delay: 1400ms; }
+
+  /* Custom checkbox for "Keep me signed in" */
+  .custom-checkbox {
+    @apply h-4 w-4 rounded border-border accent-violet-400 cursor-pointer;
+  }
+}

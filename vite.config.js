@@ -11,6 +11,12 @@ export default defineConfig({
   },
   test: {
     environment: 'node',
+    coverage: {
+      provider: 'v8',
+      reporter: ['text', 'html'],
+      include: ['src/lib/**', 'src/data/**'],
+      exclude: ['src/components/**', 'src/App.jsx', 'src/main.jsx'],
+    },
   },
   server: {
     host: true,
