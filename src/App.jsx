@@ -149,6 +149,54 @@ function berechneGiessIntervall(pflanzen) {
   return intervalle.length ? Math.min(...intervalle) : 3;
 }
 
+function brauchtDuengen(beet, date, duengenLog) {
+  if (!beet.pflanzen?.length) return { noetig: false };
+  if (parseISO(beet.gepflanzt) > date) return { noetig: false, nochNichtGepflanzt: true };
+
+  // Nur Pflanzen mit Intervall-Tracking berücksichtigen
+  const relevanteIntervalle = beet.pflanzen.map(p => {
+    const info = findPflanze(p);
+    return info?.duenger?.intervallWochen ?? null;
+  }).filter(v => v !== null);
+
+  if (relevanteIntervalle.length === 0) return { noetig: false };
+
+  const intervallTage = Math.min(...relevanteIntervalle) * 7;
+
+  const log = (duengenLog[beet.beet] || [])
+    .map(d => parseISO(d))
+    .filter(d => !isNaN(d))
+    .sort((a, b) => b - a);
+
+  const letztesDuengen = log[0] || null;
+
+  if (!letztesDuengen) {
+    return {
+      noetig: true,
+      letztesDuengen: null,
+      naechstesDuengen: null,
+      tageSeit: null,
+      intervall: intervallTage,
+      grund: 'Noch nicht gedüngt',
+    };
+  }
+
+  const tageSeit = differenceInDays(date, letztesDuengen);
+  const naechstesDuengen = new Date(letztesDuengen);
+  naechstesDuengen.setDate(naechstesDuengen.getDate() + intervallTage);
+
+  return {
+    noetig: tageSeit >= intervallTage,
+    letztesDuengen,
+    naechstesDuengen,
+    tageSeit,
+    intervall: intervallTage,
+    grund: tageSeit >= intervallTage
+      ? `Seit ${tageSeit} Tagen nicht gedüngt (Intervall: ${intervallTage} Tage)`
+      : `Nächstes Düngen: ${format(naechstesDuengen, 'dd.MM.')}`,
+  };
+}
+
 function berechneRegenCredits(vonDatum, bisDatum, wetterDaten) {
   if (!wetterDaten?.daily) return 0;
   let credits = 0;
@@ -1394,6 +1442,12 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
       return saved ? JSON.parse(saved) : {};
     } catch { return {}; }
   });
+  const [duengenLog, setDuengenLog] = useState(() => {
+    try {
+      const saved = lsGet('duengenLog', profileId);
+      return saved ? JSON.parse(saved) : {};
+    } catch { return {}; }
+  });
   const [standort, setStandort] = useState(() => {
     try {
       const saved = localStorage.getItem('standort');
@@ -1481,6 +1535,10 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
   }, [giessenLog, profileId]);
 
   useEffect(() => {
+    try { lsSet('duengenLog', JSON.stringify(duengenLog), profileId); } catch {}
+  }, [duengenLog, profileId]);
+
+  useEffect(() => {
     try { lsSet('pinnedBeete', JSON.stringify([...pinnedBeete]), profileId); } catch {}
   }, [pinnedBeete, profileId]);
 
@@ -1558,7 +1616,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
   }
 
   function saveSnapshot() {
-    setUndoStack(prev => [{ beete, giessenLog }, ...prev].slice(0, 10));
+    setUndoStack(prev => [{ beete, giessenLog, duengenLog }, ...prev].slice(0, 10));
   }
 
   function undo() {
@@ -1566,6 +1624,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     const [last, ...rest] = undoStack;
     setBeete(last.beete);
     setGiessenLog(last.giessenLog);
+    if (last.duengenLog) setDuengenLog(last.duengenLog);
     setUndoStack(rest);
   }
 
@@ -1589,6 +1648,12 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     setArchivierteBeete(prev => [archivEintrag, ...prev]);
     setArchivZugeklappt(false);
     setGiessenLog(prev => {
+      if (!(id in prev)) return prev;
+      const next = { ...prev };
+      delete next[id];
+      return next;
+    });
+    setDuengenLog(prev => {
       if (!(id in prev)) return prev;
       const next = { ...prev };
       delete next[id];
@@ -1659,6 +1724,30 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     saveSnapshot();
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
     setGiessenLog(prev => {
+      const next = { ...prev };
+      for (const id of beetIds) {
+        const current = next[id] || [];
+        if (!current.includes(dateStr)) next[id] = [...current, dateStr];
+      }
+      return next;
+    });
+  }
+
+  function handleDuengen(beetId, date) {
+    saveSnapshot();
+    const dateStr = format(date, 'yyyy-MM-dd');
+    setDuengenLog(prev => {
+      const current = prev[beetId] || [];
+      return current.includes(dateStr)
+        ? { ...prev, [beetId]: current.filter(d => d !== dateStr) }
+        : { ...prev, [beetId]: [...current, dateStr] };
+    });
+  }
+
+  function handleAlleDuengen(beetIds) {
+    saveSnapshot();
+    const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    setDuengenLog(prev => {
       const next = { ...prev };
       for (const id of beetIds) {
         const current = next[id] || [];
