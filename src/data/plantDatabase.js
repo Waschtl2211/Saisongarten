@@ -1345,6 +1345,7 @@ export const pflanzDatenbank = [
  * Pflanze anhand des Namens aus der Datenbank finden (fuzzy, case-insensitive).
  */
 export function findPflanze(name) {
+  if (typeof name === 'object' && name !== null) name = name.name ?? '';
   const lc = name.toLowerCase().trim();
   return (
     pflanzDatenbank.find(p => p.name.toLowerCase() === lc) ||

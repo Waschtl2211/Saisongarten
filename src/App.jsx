@@ -142,10 +142,7 @@ function fetchWetter(lat, lon, onData, onLaden, onFehler) {
 }
 
 function berechneGiessIntervall(pflanzen) {
-  const intervalle = pflanzen.map(p => {
-    if (typeof p === 'string') return findPflanze(p)?.giessIntervall ?? null;
-    return p.giessIntervall ?? null;
-  }).filter(v => v !== null);
+  const intervalle = pflanzen.map(p => findPflanze(p)?.giessIntervall ?? null).filter(v => v !== null);
   return intervalle.length ? Math.min(...intervalle) : 3;
 }
 
@@ -957,7 +954,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
   const monat = selectedDate.getMonth() + 1;
   const gepflanztBeete = beete.filter(b => b.pflanzen?.length > 0 && parseISO(b.gepflanzt) <= selectedDate);
   const KRAEUTER = new Set(['Basilikum','Schnittlauch','Petersilie','Dill','Koriander','Pimpinelle','Blutampfer','Wilde Rauke','Barbarakraut','Hirschhornwegerich','Borretsch']);
-  const bereitsGepflanzt = new Set(beete.flatMap(b => b.pflanzen || []));
+  const bereitsGepflanzt = new Set(beete.flatMap(b => (b.pflanzen || []).map(pflanzeName)));
 
   const aufgaben = [];
 
@@ -972,7 +969,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
         sub: `Seit ${Math.abs(tage)} Tagen fällig${beet.naechste ? ` · Nachkultur: ${beet.naechste}` : ''}`,
         details: [
           `📅 Fällig seit: ${format(parseISO(beet.faellig), 'dd.MM.yyyy')}`,
-          `🌿 Pflanzen: ${beet.pflanzen.map(p => `${findPflanze(p)?.icon || ''} ${p}`).join(', ')}`,
+          `🌿 Pflanzen: ${beet.pflanzen.map(p => `${findPflanze(p)?.icon || ''} ${pflanzeName(p)}`).join(', ')}`,
           beet.naechste && `🔄 Geplante Nachfolge: ${beet.naechste}`,
           beet.zone && `📍 Zone: ${beet.zone}`,
         ].filter(Boolean),
@@ -996,7 +993,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
           `⏱ ${gs.tageSeit} Tage vergangen (Intervall: ${gs.intervall} Tage)`,
           gs.regenCredits > 0 && `🌧️ Regen-Credits: −${gs.regenCredits.toFixed(1)} Tage`,
           `📊 Effektiv: ${gs.effektiveTage.toFixed(1)} von ${gs.intervall} Tagen`,
-          `🌱 Pflanzen: ${[...new Set(beet.pflanzen)].map(p => { const info = findPflanze(p); return `${info?.icon || ''} ${p} (${info?.giessIntensität || '?'}, alle ${info?.giessIntervall || '?'}d)`; }).join(', ')}`,
+          `🌱 Pflanzen: ${[...new Set(beet.pflanzen.map(pflanzeName))].map(p => { const info = findPflanze(p); return `${info?.icon || ''} ${p} (${info?.giessIntensität || '?'}, alle ${info?.giessIntervall || '?'}d)`; }).join(', ')}`,
 
         ].filter(Boolean),
       });
@@ -1030,19 +1027,19 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
       const start = addMonths(parseISO(beet.gepflanzt), info.ernteanfangOffset);
       return selectedDate >= start && selectedDate <= addMonths(start, info.erntedauer);
     });
-    const gemuese = erntereif.filter(p => !KRAEUTER.has(p));
-    const kraeuter = erntereif.filter(p => KRAEUTER.has(p));
+    const gemuese = erntereif.filter(p => !KRAEUTER.has(pflanzeName(p)));
+    const kraeuter = erntereif.filter(p => KRAEUTER.has(pflanzeName(p)));
     if (gemuese.length) {
       aufgaben.push({
         typ: 'ernte', icon: '🌾', prio: 3,
         text: `Beet ${beet.beet} ernten`,
-        sub: gemuese.map(p => `${findPflanze(p)?.icon||''} ${p}`).join(' · '),
+        sub: gemuese.map(p => `${findPflanze(p)?.icon||''} ${pflanzeName(p)}`).join(' · '),
         details: gemuese.map(p => {
           const info = findPflanze(p);
-          if (!info) return p;
+          if (!info) return pflanzeName(p);
           const start = addMonths(parseISO(beet.gepflanzt), info.ernteanfangOffset);
           const end = addMonths(start, info.erntedauer);
-          return `${info.icon} ${p}: Ernte ${format(start, 'dd.MM.')} – ${format(end, 'dd.MM.')}`;
+          return `${info.icon} ${pflanzeName(p)}: Ernte ${format(start, 'dd.MM.')} – ${format(end, 'dd.MM.')}`;
         }),
       });
     }
@@ -1050,11 +1047,11 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
       aufgaben.push({
         typ: 'rueckschnitt', icon: '✂️', prio: 3,
         text: `Beet ${beet.beet} – Kräuter schneiden`,
-        sub: kraeuter.map(p => `${findPflanze(p)?.icon||''} ${p}`).join(' · '),
+        sub: kraeuter.map(p => `${findPflanze(p)?.icon||''} ${pflanzeName(p)}`).join(' · '),
         details: [
           ...kraeuter.map(p => {
             const info = findPflanze(p);
-            return `${info?.icon || '🌿'} ${p}: Regelmäßig schneiden, nicht tief in altes Holz`;
+            return `${info?.icon || '🌿'} ${pflanzeName(p)}: Regelmäßig schneiden, nicht tief in altes Holz`;
           }),
           '💡 Tipp: Kräuter morgens schneiden, damit Schnittstellen abtrocknen können',
         ],
@@ -1084,7 +1081,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
         sub: subParts.join(' · ') || 'Nachfolger planen',
         details: [
           `📅 Räumen bis: ${format(parseISO(beet.faellig), 'dd.MM.yyyy')}`,
-          `🌿 Jetzt drin: ${beet.pflanzen.map(p => `${findPflanze(p)?.icon || ''} ${p}`).join(', ')}`,
+          `🌿 Jetzt drin: ${beet.pflanzen.map(p => `${findPflanze(p)?.icon || ''} ${pflanzeName(p)}`).join(', ')}`,
           beet.naechste && `🔄 Geplante Nachfolge: ${beet.naechste}`,
           alternativen.length && `✅ Mögliche Nachfolger: ${alternativen.map(p => `${p.icon} ${p.name}`).join(', ')}`,
         ].filter(Boolean),

@@ -2,38 +2,21 @@ import { StrictMode, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App.jsx';
-import ProfileScreen from './ProfileScreen.jsx';
-import {
-  loadProfiles, saveProfiles,
-  loadCurrentProfileId, saveCurrentProfileId,
-  migrateLegacyData,
-  loadProfilePins, saveProfilePins, setProfilePin, removeProfilePin,
-} from './lib/storage.js';
+import { SignInPage } from './components/ui/sign-in.tsx';
+import { migrateLegacyData, setProfilePin, loadProfilePins } from './lib/storage.js';
 
-// ── Seed profiles on very first launch ───────────────────────────────────────
-function initProfiles() {
-  let profiles = loadProfiles();
-  if (profiles.length === 0) {
-    profiles = [
-      { id: 'waschtl', name: 'Waschtl', color: 'green' },
-      { id: 'gabriel', name: 'Gabriel', color: 'blue' },
-    ];
-    saveProfiles(profiles);
-    migrateLegacyData('waschtl');
-  }
-  // Seed default PINs if not yet set
+function initWaschtl() {
   const pins = loadProfilePins();
   if (!pins['waschtl']) setProfilePin('waschtl', '221187');
-  if (!pins['gabriel']) setProfilePin('gabriel', '000000');
-  return profiles;
+  migrateLegacyData('waschtl');
 }
 
 function Root() {
-  const [profiles, setProfiles] = useState(() => initProfiles());
-  const [currentProfileId, setCurrentProfileId] = useState(() => loadCurrentProfileId());
+  const [signedIn, setSignedIn] = useState(() => localStorage.getItem('signedIn') === 'true');
 
-  // Apply dark mode before first paint
   useEffect(() => {
+    initWaschtl();
+    // Apply saved display preferences before first paint
     const dm = localStorage.getItem('darkMode');
     if (dm === 'true') document.documentElement.classList.add('dark');
     const fs = localStorage.getItem('fontSize');
@@ -42,59 +25,37 @@ function Root() {
     if (ac && ac !== 'green') document.documentElement.setAttribute('data-accent', ac);
   }, []);
 
-  function handleSelect(id) {
-    saveCurrentProfileId(id);
-    setCurrentProfileId(id);
+  function handleSignIn(e) {
+    if (e?.preventDefault) e.preventDefault();
+    localStorage.setItem('signedIn', 'true');
+    setSignedIn(true);
   }
 
-  function handleAdd(profile) {
-    setProfilePin(profile.id, profile.pin || '0000');
-    const { pin, ...profileData } = profile;
-    const next = [...profiles, profileData];
-    setProfiles(next);
-    saveProfiles(next);
-    handleSelect(profile.id);
+  function handleSignOut() {
+    localStorage.removeItem('signedIn');
+    setSignedIn(false);
   }
 
-  function handleDelete(id) {
-    const keysToDelete = ['beete', 'beetDataVersion', 'archivierteBeete', 'giessenLog', 'pinnedBeete', 'beetNotizen', 'ernteLog'];
-    keysToDelete.forEach(k => localStorage.removeItem(`${k}_${id}`));
-    removeProfilePin(id);
-    const next = profiles.filter(p => p.id !== id);
-    setProfiles(next);
-    saveProfiles(next);
-    if (currentProfileId === id) {
-      const newCurrent = next[0]?.id || null;
-      saveCurrentProfileId(newCurrent || '');
-      setCurrentProfileId(newCurrent);
-    }
-  }
-
-  function handleSwitchProfile() {
-    saveCurrentProfileId('');
-    setCurrentProfileId(null);
-  }
-
-  const currentProfile = profiles.find(p => p.id === currentProfileId);
-
-  if (!currentProfileId || !currentProfile) {
+  if (!signedIn) {
     return (
-      <ProfileScreen
-        profiles={profiles}
-        onSelect={handleSelect}
-        onAdd={handleAdd}
-        onDelete={handleDelete}
+      <SignInPage
+        title={<span className="font-semibold tracking-tight">Saisongarten 🌱</span>}
+        description="Melde dich an um deinen Gartenplan zu öffnen"
+        onSignIn={handleSignIn}
+        onGoogleSignIn={handleSignIn}
+        onResetPassword={() => {}}
+        onCreateAccount={() => {}}
       />
     );
   }
 
   return (
     <App
-      key={currentProfileId}
-      profileId={currentProfileId}
-      profileName={currentProfile.name}
-      profileColor={currentProfile.color}
-      onSwitchProfile={handleSwitchProfile}
+      key="waschtl"
+      profileId="waschtl"
+      profileName="Waschtl"
+      profileColor="green"
+      onSwitchProfile={handleSignOut}
     />
   );
 }
