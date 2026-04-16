@@ -18,10 +18,12 @@ interface SignInPageProps {
   testimonials?: Testimonial[];
   onSignIn?: (event: React.FormEvent<HTMLFormElement>) => void;
   onResetPassword?: () => void;
+  onForgotPasswordSubmit?: (email: string) => void;
   isLoading?: boolean;
   errorMessage?: string | null;
-  mode?: 'signin' | 'accept-invite';
+  mode?: 'signin' | 'accept-invite' | 'recovery' | 'forgot-password';
   onAcceptInvite?: (password: string) => void;
+  onSetNewPassword?: (password: string) => void;
 }
 
 // --- SUB-COMPONENTS ---
@@ -43,6 +45,68 @@ const TestimonialCard = ({ testimonial, delay }: { testimonial: Testimonial, del
   </div>
 );
 
+// Shared "set password" form used for both invite acceptance and password recovery
+const SetPasswordForm = ({
+  isLoading,
+  buttonLabel,
+  onSubmit,
+}: {
+  isLoading: boolean;
+  buttonLabel: string;
+  onSubmit: (password: string) => void;
+}) => {
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  return (
+    <div className="space-y-5">
+      <div className="animate-element animate-delay-300">
+        <label className="text-sm font-medium text-muted-foreground">Neues Passwort</label>
+        <GlassInputWrapper>
+          <input
+            type="password"
+            placeholder="Neues Passwort"
+            autoComplete="new-password"
+            value={password}
+            onChange={e => setPassword(e.target.value)}
+            className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none"
+            disabled={isLoading}
+          />
+        </GlassInputWrapper>
+      </div>
+      <div className="animate-element animate-delay-400">
+        <label className="text-sm font-medium text-muted-foreground">Passwort bestätigen</label>
+        <GlassInputWrapper>
+          <input
+            type="password"
+            placeholder="Passwort wiederholen"
+            autoComplete="new-password"
+            value={confirm}
+            onChange={e => setConfirm(e.target.value)}
+            className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none"
+            disabled={isLoading}
+          />
+        </GlassInputWrapper>
+      </div>
+      {localError && <p className="text-sm text-destructive">{localError}</p>}
+      <button
+        type="button"
+        disabled={isLoading}
+        onClick={() => {
+          if (password.length < 6) { setLocalError('Mindestens 6 Zeichen.'); return; }
+          if (password !== confirm) { setLocalError('Passwörter stimmen nicht überein.'); return; }
+          setLocalError(null);
+          onSubmit(password);
+        }}
+        className="animate-element animate-delay-500 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+      >
+        {isLoading ? '…' : buttonLabel}
+      </button>
+    </div>
+  );
+};
+
 // --- MAIN COMPONENT ---
 
 export const SignInPage: React.FC<SignInPageProps> = ({
@@ -52,15 +116,15 @@ export const SignInPage: React.FC<SignInPageProps> = ({
   testimonials = [],
   onSignIn,
   onResetPassword,
+  onForgotPasswordSubmit,
   isLoading = false,
   errorMessage = null,
   mode = 'signin',
   onAcceptInvite,
+  onSetNewPassword,
 }) => {
   const [showPassword, setShowPassword] = useState(false);
-  const [invitePassword, setInvitePassword] = useState('');
-  const [invitePasswordConfirm, setInvitePasswordConfirm] = useState('');
-  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [forgotEmail, setForgotEmail] = useState('');
 
   return (
     <div className="h-[100dvh] flex flex-col md:flex-row font-geist w-[100dvw]">
@@ -77,69 +141,98 @@ export const SignInPage: React.FC<SignInPageProps> = ({
               </div>
             )}
 
-            {mode === 'accept-invite' ? (
-              <div className="space-y-5">
+            {mode === 'accept-invite' && (
+              <>
                 <p className="text-sm text-muted-foreground">Bitte lege dein Passwort fest, um die Einladung anzunehmen.</p>
+                <SetPasswordForm isLoading={isLoading} buttonLabel="Einladung annehmen" onSubmit={p => onAcceptInvite?.(p)} />
+              </>
+            )}
+
+            {mode === 'recovery' && (
+              <>
+                <p className="text-sm text-muted-foreground">Lege jetzt ein neues Passwort für dein Konto fest.</p>
+                <SetPasswordForm isLoading={isLoading} buttonLabel="Passwort speichern" onSubmit={p => onSetNewPassword?.(p)} />
+              </>
+            )}
+
+            {mode === 'forgot-password' && (
+              <div className="space-y-5">
+                <p className="text-sm text-muted-foreground">Gib deine E-Mail-Adresse ein. Du erhältst einen Link zum Zurücksetzen deines Passworts.</p>
                 <div className="animate-element animate-delay-300">
-                  <label className="text-sm font-medium text-muted-foreground">Passwort</label>
+                  <label className="text-sm font-medium text-muted-foreground">E-Mail-Adresse</label>
                   <GlassInputWrapper>
-                    <input type="password" placeholder="Neues Passwort" value={invitePassword} onChange={e => setInvitePassword(e.target.value)} className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" disabled={isLoading} />
+                    <input
+                      type="email"
+                      placeholder="E-Mail eingeben"
+                      autoComplete="email"
+                      value={forgotEmail}
+                      onChange={e => setForgotEmail(e.target.value)}
+                      className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none"
+                      disabled={isLoading}
+                    />
                   </GlassInputWrapper>
                 </div>
-                <div className="animate-element animate-delay-400">
-                  <label className="text-sm font-medium text-muted-foreground">Passwort bestätigen</label>
-                  <GlassInputWrapper>
-                    <input type="password" placeholder="Passwort wiederholen" value={invitePasswordConfirm} onChange={e => setInvitePasswordConfirm(e.target.value)} className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none" disabled={isLoading} />
-                  </GlassInputWrapper>
-                </div>
-                {inviteError && <p className="text-sm text-destructive">{inviteError}</p>}
                 <button
                   type="button"
-                  disabled={isLoading}
-                  onClick={() => {
-                    if (invitePassword.length < 6) { setInviteError('Mindestens 6 Zeichen.'); return; }
-                    if (invitePassword !== invitePasswordConfirm) { setInviteError('Passwörter stimmen nicht überein.'); return; }
-                    setInviteError(null);
-                    onAcceptInvite?.(invitePassword);
-                  }}
-                  className="animate-element animate-delay-500 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || !forgotEmail}
+                  onClick={() => onForgotPasswordSubmit?.(forgotEmail)}
+                  className="animate-element animate-delay-400 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {isLoading ? '…' : 'Einladung annehmen'}
+                  {isLoading ? '…' : 'Reset-Link senden'}
+                </button>
+                <button
+                  type="button"
+                  onClick={onResetPassword}
+                  className="w-full text-sm text-muted-foreground hover:text-foreground transition-colors"
+                >
+                  Zurück zur Anmeldung
                 </button>
               </div>
-            ) : (
-            <form className="space-y-5" onSubmit={onSignIn}>
-              <div className="animate-element animate-delay-300">
-                <label className="text-sm font-medium text-muted-foreground">E-Mail-Adresse</label>
-                <GlassInputWrapper>
-                  <input name="email" type="email" placeholder="E-Mail eingeben" disabled={isLoading} className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none disabled:opacity-50" />
-                </GlassInputWrapper>
-              </div>
+            )}
 
-              <div className="animate-element animate-delay-400">
-                <label className="text-sm font-medium text-muted-foreground">Passwort</label>
-                <GlassInputWrapper>
-                  <div className="relative">
-                    <input name="password" type={showPassword ? 'text' : 'password'} placeholder="Passwort eingeben" disabled={isLoading} className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none disabled:opacity-50" />
-                    <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
-                      {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />}
-                    </button>
-                  </div>
-                </GlassInputWrapper>
-              </div>
+            {mode === 'signin' && (
+              <form className="space-y-5" onSubmit={onSignIn}>
+                <div className="animate-element animate-delay-300">
+                  <label className="text-sm font-medium text-muted-foreground">E-Mail-Adresse</label>
+                  <GlassInputWrapper>
+                    <input
+                      name="email"
+                      type="email"
+                      placeholder="E-Mail eingeben"
+                      autoComplete="username"
+                      disabled={isLoading}
+                      className="w-full bg-transparent text-sm p-4 rounded-2xl focus:outline-none disabled:opacity-50"
+                    />
+                  </GlassInputWrapper>
+                </div>
 
-              <div className="animate-element animate-delay-500 flex items-center justify-between text-sm">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" name="rememberMe" className="custom-checkbox" />
-                  <span className="text-foreground/90">Angemeldet bleiben</span>
-                </label>
-                <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-violet-400 transition-colors">Passwort vergessen?</a>
-              </div>
+                <div className="animate-element animate-delay-400">
+                  <label className="text-sm font-medium text-muted-foreground">Passwort</label>
+                  <GlassInputWrapper>
+                    <div className="relative">
+                      <input
+                        name="password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Passwort eingeben"
+                        autoComplete="current-password"
+                        disabled={isLoading}
+                        className="w-full bg-transparent text-sm p-4 pr-12 rounded-2xl focus:outline-none disabled:opacity-50"
+                      />
+                      <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute inset-y-0 right-3 flex items-center">
+                        {showPassword ? <EyeOff className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" /> : <Eye className="w-5 h-5 text-muted-foreground hover:text-foreground transition-colors" />}
+                      </button>
+                    </div>
+                  </GlassInputWrapper>
+                </div>
 
-              <button type="submit" disabled={isLoading} className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
-                {isLoading ? '…' : 'Anmelden'}
-              </button>
-            </form>
+                <div className="animate-element animate-delay-500 flex items-center justify-end text-sm">
+                  <a href="#" onClick={(e) => { e.preventDefault(); onResetPassword?.(); }} className="hover:underline text-violet-400 transition-colors">Passwort vergessen?</a>
+                </div>
+
+                <button type="submit" disabled={isLoading} className="animate-element animate-delay-600 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+                  {isLoading ? '…' : 'Anmelden'}
+                </button>
+              </form>
             )}
 
           </div>

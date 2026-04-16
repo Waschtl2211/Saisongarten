@@ -54,14 +54,22 @@ function Root() {
   useEffect(() => {
     if (!hashParams) return;
 
-    const { access_token, type, invite_token } = hashParams;
+    const { access_token, type, invite_token, recovery_token } = hashParams;
 
+    // Invite link: #invite_token=TOKEN
     if (invite_token) {
       setPageMode('accept-invite');
       return;
     }
 
-    if ((type === 'token' || type === 'recovery') && access_token) {
+    // Password recovery link: #recovery_token=TOKEN
+    if (recovery_token) {
+      setPageMode('recovery');
+      return;
+    }
+
+    // OAuth callback: #access_token=TOKEN&type=token
+    if (type === 'token' && access_token) {
       setLoading(true);
       setError(null);
       auth.createUser(hashParams, true)
@@ -94,14 +102,20 @@ function Root() {
     }
   }
 
-  async function handleResetPassword() {
-    const email = window.prompt('Bitte gib deine E-Mail-Adresse ein:');
-    if (!email) return;
+  // "Passwort vergessen?" — switches to the forgot-password form
+  function handleResetPassword() {
+    setError(null);
+    setPageMode('forgot-password');
+  }
+
+  // Submitting the forgot-password email form
+  async function handleForgotPasswordSubmit(email) {
     setLoading(true);
     setError(null);
     try {
       await auth.requestPasswordRecovery(email);
-      setError('Passwort-Reset-E-Mail wurde gesendet. Bitte prüfe deinen Posteingang.');
+      setError('E-Mail wurde gesendet. Bitte prüfe deinen Posteingang und klicke auf den Link.');
+      setPageMode('signin');
     } catch (err) {
       setError(err.message || 'Fehler beim Senden der Reset-E-Mail.');
     } finally {
@@ -127,6 +141,25 @@ function Root() {
     }
   }
 
+  async function handleSetNewPassword(password) {
+    const recovery_token = hashParams?.recovery_token;
+    if (!recovery_token) {
+      setError('Kein Reset-Token gefunden. Bitte fordere einen neuen Reset-Link an.');
+      return;
+    }
+    setLoading(true);
+    setError(null);
+    try {
+      const u = await auth.recover(recovery_token, true);
+      await u.update({ password });
+      setUser(u);
+    } catch (err) {
+      setError(err.message || 'Passwort konnte nicht gesetzt werden.');
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleSignOut() {
     try {
       await user.logout();
@@ -146,11 +179,12 @@ function Root() {
         description="Melde dich an um deinen Gartenplan zu öffnen"
         onSignIn={handleSignIn}
         onResetPassword={handleResetPassword}
-        onCreateAccount={() => {}}
+        onForgotPasswordSubmit={handleForgotPasswordSubmit}
         isLoading={loading}
         errorMessage={error}
         mode={pageMode}
         onAcceptInvite={handleAcceptInvite}
+        onSetNewPassword={handleSetNewPassword}
       />
     );
   }
