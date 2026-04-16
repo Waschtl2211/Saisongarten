@@ -56,7 +56,7 @@ function Root() {
 
     const { access_token, type, invite_token } = hashParams;
 
-    if (type === 'invite' && invite_token) {
+    if (invite_token) {
       setPageMode('accept-invite');
       return;
     }
