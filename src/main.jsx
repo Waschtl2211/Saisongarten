@@ -94,10 +94,6 @@ function Root() {
     }
   }
 
-  function handleGoogleSignIn() {
-    window.location.href = auth.loginExternalUrl('google');
-  }
-
   async function handleResetPassword() {
     const email = window.prompt('Bitte gib deine E-Mail-Adresse ein:');
     if (!email) return;
@@ -149,7 +145,6 @@ function Root() {
         title={<span className="font-semibold tracking-tight">Saisongarten 🌱</span>}
         description="Melde dich an um deinen Gartenplan zu öffnen"
         onSignIn={handleSignIn}
-        onGoogleSignIn={handleGoogleSignIn}
         onResetPassword={handleResetPassword}
         onCreateAccount={() => {}}
         isLoading={loading}
