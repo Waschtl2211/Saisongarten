@@ -86,10 +86,29 @@ export function getProfilePin(profileId) {
   return loadProfilePins()[profileId] ?? null;
 }
 
-export function setProfilePin(profileId, pin) {
+async function sha256hex(message) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
+}
+
+export async function setProfilePin(profileId, pin) {
+  const salt = crypto.randomUUID();
+  const hash = await sha256hex(salt + pin);
   const pins = loadProfilePins();
-  pins[profileId] = pin;
+  pins[profileId] = { hash, salt };
   saveProfilePins(pins);
+}
+
+export async function verifyProfilePin(profileId, pin) {
+  const stored = loadProfilePins()[profileId];
+  if (!stored) return false;
+  if (typeof stored === 'string') {
+    // Legacy plaintext — verify and auto-upgrade
+    if (pin !== stored) return false;
+    await setProfilePin(profileId, pin);
+    return true;
+  }
+  return (await sha256hex(stored.salt + pin)) === stored.hash;
 }
 
 export function removeProfilePin(profileId) {
@@ -114,6 +133,25 @@ export function setProfileMapping(uid, profileId) {
   const map = getProfileMapping();
   map[uid] = profileId;
   localStorage.setItem('netlify_profile_map', JSON.stringify(map));
+}
+
+// ── Export / Import ───────────────────────────────────────────────────────────
+
+export function exportProfileData(profileId) {
+  const data = {};
+  for (const key of USER_KEYS) {
+    const val = localStorage.getItem(profileKey(key, profileId));
+    if (val !== null) data[key] = JSON.parse(val);
+  }
+  return { version: '1.0', exportedAt: new Date().toISOString(), profileId, data };
+}
+
+export function importProfileData(profileId, exported) {
+  const { data } = exported;
+  for (const key of USER_KEYS) {
+    if (data[key] !== undefined)
+      localStorage.setItem(profileKey(key, profileId), JSON.stringify(data[key]));
+  }
 }
 
 export function copyProfileData(fromId, toId) {

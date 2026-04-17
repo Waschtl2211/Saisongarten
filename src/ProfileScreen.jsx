@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { getProfilePin, setProfilePin } from './lib/storage.js';
+import { getProfilePin, setProfilePin, verifyProfilePin } from './lib/storage.js';
 
 const AVATAR_COLORS = [
   { key: 'green',  bg: 'bg-green-500',  label: 'Grün' },
@@ -52,9 +52,9 @@ export default function ProfileScreen({ profiles, onSelect, onAdd, onDelete }) {
     setAddMode(false);
   }
 
-  function handlePinLogin() {
-    const stored = getProfilePin(pinTarget);
-    if (pinInput === stored) {
+  async function handlePinLogin() {
+    const ok = await verifyProfilePin(pinTarget, pinInput);
+    if (ok) {
       onSelect(pinTarget);
       setPinTarget(null); setPinInput(''); setPinError(false);
     } else {
@@ -62,12 +62,11 @@ export default function ProfileScreen({ profiles, onSelect, onAdd, onDelete }) {
     }
   }
 
-  function handleChangePin() {
-    const stored = getProfilePin(changePinFor);
-    if (oldPinInput !== stored) { setChangePinError('Alter PIN falsch'); return; }
+  async function handleChangePin() {
+    if (!(await verifyProfilePin(changePinFor, oldPinInput))) { setChangePinError('Alter PIN falsch'); return; }
     if (newPinInput.length < 4) { setChangePinError('PIN muss mindestens 4 Stellen haben'); return; }
     if (newPinInput !== newPinConfirmInput) { setChangePinError('PINs stimmen nicht überein'); return; }
-    setProfilePin(changePinFor, newPinInput);
+    await setProfilePin(changePinFor, newPinInput);
     setChangePinFor(null); setOldPinInput(''); setNewPinInput(''); setNewPinConfirmInput(''); setChangePinError('');
   }
 

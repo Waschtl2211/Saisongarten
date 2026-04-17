@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { gardenData as initialGardenData, GARDEN_DATA_VERSION } from './data/gardenData';
 import { pflanzDatenbank, findPflanze, getNeighborRelation, computeErntbarIm } from './data/plantDatabase';
 import { format, parseISO, differenceInDays, addMonths } from 'date-fns';
@@ -7,7 +7,7 @@ function deMonat(date) { return `${DE_MONATE[date.getMonth()]} ${date.getFullYea
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Chatbot from './components/Chatbot';
-import { lsGet, lsSet, getProfilePin, setProfilePin } from './lib/storage.js';
+import { lsGet, lsSet, getProfilePin, setProfilePin, verifyProfilePin, exportProfileData, importProfileData } from './lib/storage.js';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -977,6 +977,45 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
     }
   });
 
+  // 0b. Frostgefahr
+  const FROST_EMPFINDLICH = new Set([
+    'Tomate','Basilikum','Zucchini','Gurke','Paprika','Kürbis',
+    'Aubergine','Mais','Melone','Bohnen','Süßkartoffel',
+  ]);
+  const wetterHeuteTag = getWetterFuerTag(selectedDate, wetterDaten);
+  if (wetterHeuteTag?.minTemp != null && wetterHeuteTag.minTemp < 2) {
+    const betroffene = beete
+      .filter(b => b.pflanzen?.some(p => FROST_EMPFINDLICH.has(pflanzeName(p))))
+      .map(b => b.beet);
+    aufgaben.push({
+      typ: 'frost', icon: '❄️', prio: 0,
+      text: `Frostgefahr diese Nacht (${wetterHeuteTag.minTemp.toFixed(0)}°C)`,
+      sub: betroffene.length > 0 ? `Abdecken: Beet ${betroffene.join(', ')}` : 'Keine frostempfindlichen Pflanzen im Garten',
+      details: [
+        `❄️ Tiefstwert: ${wetterHeuteTag.minTemp}°C`,
+        betroffene.length > 0 && `🥗 Betroffene Beete: ${betroffene.join(', ')}`,
+        '💡 Tipp: Vlies oder Folie über die Pflanzen legen',
+      ].filter(Boolean),
+    });
+  }
+  const morgenFrostDat = new Date(selectedDate); morgenFrostDat.setDate(morgenFrostDat.getDate() + 1);
+  const wetterMorgenFrost = getWetterFuerTag(morgenFrostDat, wetterDaten);
+  if (wetterMorgenFrost?.isForecast && wetterMorgenFrost.minTemp != null && wetterMorgenFrost.minTemp < 2) {
+    const betroffene = beete
+      .filter(b => b.pflanzen?.some(p => FROST_EMPFINDLICH.has(pflanzeName(p))))
+      .map(b => b.beet);
+    aufgaben.push({
+      typ: 'frost-morgen', icon: '🥶', prio: 0,
+      text: `Frostgefahr morgen (${wetterMorgenFrost.minTemp.toFixed(0)}°C)`,
+      sub: betroffene.length > 0 ? `Abdecken vorbereiten: Beet ${betroffene.join(', ')}` : 'Empfindliche Pflanzen schützen',
+      details: [
+        `❄️ Tiefstwert morgen: ${wetterMorgenFrost.minTemp}°C`,
+        betroffene.length > 0 && `🥗 Betroffene Beete: ${betroffene.join(', ')}`,
+        '💡 Tipp: Vlies, Folie oder Glocken bereitstellen',
+      ].filter(Boolean),
+    });
+  }
+
   // 1. Gießen
   gepflanztBeete.forEach(beet => {
     const gs = brauchtGiessen(beet, selectedDate, giessenLog, wetterDaten);
@@ -1616,6 +1655,35 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     setUndoStack(prev => [{ beete, giessenLog, duengenLog }, ...prev].slice(0, 10));
   }
 
+  const importInputRef = useRef(null);
+
+  function handleExport() {
+    const exported = exportProfileData(profileId);
+    const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `saisongarten_${profileId}_${format(new Date(), 'yyyy-MM-dd')}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  async function handleImport(e) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const parsed = JSON.parse(await file.text());
+      if (parsed.version !== '1.0' || !parsed.data) throw new Error('Ungültig');
+      if (!window.confirm('Bestehende Daten werden überschrieben. Fortfahren?')) return;
+      importProfileData(profileId, parsed);
+      window.location.reload();
+    } catch {
+      alert('Ungültige Backup-Datei.');
+    } finally {
+      if (importInputRef.current) importInputRef.current.value = '';
+    }
+  }
+
   function undo() {
     if (undoStack.length === 0) return;
     const [last, ...rest] = undoStack;
@@ -1851,6 +1919,21 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
             📄 PDF
           </button>
 
+          <button
+            onClick={handleExport}
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-colors"
+            title="Gartendaten exportieren (JSON-Backup)"
+          >
+            💾 Export
+          </button>
+          <label
+            className="text-xs text-gray-500 dark:text-gray-400 hover:text-green-600 dark:hover:text-green-400 flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-colors cursor-pointer"
+            title="Gartendaten importieren (JSON-Backup)"
+          >
+            📥 Import
+            <input ref={importInputRef} type="file" accept=".json" className="hidden" onChange={handleImport} />
+          </label>
+
           {/* Dark-Mode-Toggle */}
           <button
             onClick={() => setDarkMode(d => !d)}
@@ -2030,12 +2113,11 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                     </div>
                   )}
                   <button
-                    onClick={() => {
-                      const stored = getProfilePin(profileId);
-                      if (pinAlt !== stored) { setPinChangeMsg({ ok: false, text: 'Aktueller PIN ist falsch' }); return; }
+                    onClick={async () => {
+                      if (!(await verifyProfilePin(profileId, pinAlt))) { setPinChangeMsg({ ok: false, text: 'Aktueller PIN ist falsch' }); return; }
                       if (pinNeu.length < 4) { setPinChangeMsg({ ok: false, text: 'Neuer PIN muss mindestens 4 Stellen haben' }); return; }
                       if (pinNeu !== pinNeuBestaetigt) { setPinChangeMsg({ ok: false, text: 'Neue PINs stimmen nicht überein' }); return; }
-                      setProfilePin(profileId, pinNeu);
+                      await setProfilePin(profileId, pinNeu);
                       setPinAlt(''); setPinNeu(''); setPinNeuBestaetigt('');
                       setPinChangeMsg({ ok: true, text: '✓ PIN erfolgreich geändert' });
                       setTimeout(() => { setPinChangeOffen(false); setPinChangeMsg(null); }, 1500);

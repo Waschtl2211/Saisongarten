@@ -18,9 +18,9 @@ import {
 
 const auth = new GoTrue({ APIUrl: '/.netlify/identity', setCookie: false });
 
-function initWaschtl() {
+async function initWaschtl() {
   const pins = loadProfilePins();
-  if (!pins['waschtl']) setProfilePin('waschtl', '221187');
+  if (!pins['waschtl']) await setProfilePin('waschtl', '221187');
   migrateLegacyData('waschtl');
 }
 
