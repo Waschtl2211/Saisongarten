@@ -4,7 +4,17 @@ import GoTrue from 'gotrue-js';
 import './index.css';
 import App from './App.jsx';
 import { SignInPage } from './components/ui/sign-in.tsx';
-import { migrateLegacyData, setProfilePin, loadProfilePins } from './lib/storage.js';
+import {
+  migrateLegacyData,
+  setProfilePin,
+  loadProfilePins,
+  profileKey,
+  getProfileMapping,
+  setProfileMapping,
+  copyProfileData,
+  loadProfiles,
+  saveProfiles,
+} from './lib/storage.js';
 
 const auth = new GoTrue({ APIUrl: '/.netlify/identity', setCookie: false });
 
@@ -19,6 +29,63 @@ function parseHash(hash) {
   return Object.fromEntries(new URLSearchParams(str));
 }
 
+function resolveProfile(user) {
+  const map = getProfileMapping();
+  if (map[user.id]) return map[user.id];
+  // Auto-detect original waschtl user by presence of their data
+  if (localStorage.getItem(profileKey('beete', 'waschtl'))) {
+    setProfileMapping(user.id, 'waschtl');
+    return 'waschtl';
+  }
+  return null; // new user → needs onboarding
+}
+
+function deriveProfileName(profileId, user) {
+  if (profileId === 'waschtl') return 'Waschtl';
+  const local = user.email.split('@')[0];
+  return local.charAt(0).toUpperCase() + local.slice(1);
+}
+
+function OnboardingScreen({ user, onComplete }) {
+  const [loading, setLoading] = useState(false);
+
+  function handleChoice(useTemplate) {
+    setLoading(true);
+    const newId = user.id;
+    const name = deriveProfileName(newId, user);
+    if (useTemplate) copyProfileData('waschtl', newId);
+    setProfileMapping(user.id, newId);
+    const existing = loadProfiles();
+    if (!existing.find(p => p.id === newId)) {
+      saveProfiles([...existing, { id: newId, name, color: 'blue' }]);
+    }
+    onComplete(newId, name);
+  }
+
+  return (
+    <div className="h-[100dvh] flex items-center justify-center font-geist p-8">
+      <div className="w-full max-w-md flex flex-col gap-6">
+        <h1 className="text-4xl font-semibold tracking-tight">Willkommen! 🌱</h1>
+        <p className="text-muted-foreground">Wie möchtest du mit deinem Garten starten?</p>
+        <button
+          disabled={loading}
+          onClick={() => handleChoice(true)}
+          className="w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? '…' : 'Vorlage übernehmen'}
+        </button>
+        <button
+          disabled={loading}
+          onClick={() => handleChoice(false)}
+          className="w-full rounded-2xl border border-border py-4 font-medium hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+        >
+          {loading ? '…' : 'Leeren Garten anlegen'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 function Root() {
   const [user, setUser] = useState(null);
   const [authReady, setAuthReady] = useState(false);
@@ -26,6 +93,19 @@ function Root() {
   const [error, setError] = useState(null);
   const [pageMode, setPageMode] = useState('signin');
   const [hashParams, setHashParams] = useState(null);
+  const [profileId, setProfileId] = useState(null);
+  const [profileName, setProfileName] = useState('');
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  function applyProfile(u) {
+    const pid = resolveProfile(u);
+    if (pid) {
+      setProfileId(pid);
+      setProfileName(deriveProfileName(pid, u));
+    } else {
+      setShowOnboarding(true);
+    }
+  }
 
   useEffect(() => {
     initWaschtl();
@@ -46,34 +126,34 @@ function Root() {
 
     // Recover existing session
     const existing = auth.currentUser();
-    if (existing) setUser(existing);
+    if (existing) {
+      setUser(existing);
+      applyProfile(existing);
+    }
     setAuthReady(true);
   }, []);
 
-  // Handle hash-based OAuth / recovery / invite callbacks
+  // Handle hash-based invite / recovery / OAuth callbacks
   useEffect(() => {
     if (!hashParams) return;
 
     const { access_token, type, invite_token, recovery_token } = hashParams;
 
-    // Invite link: #invite_token=TOKEN
     if (invite_token) {
       setPageMode('accept-invite');
       return;
     }
 
-    // Password recovery link: #recovery_token=TOKEN
     if (recovery_token) {
       setPageMode('recovery');
       return;
     }
 
-    // OAuth callback: #access_token=TOKEN&type=token
     if (type === 'token' && access_token) {
       setLoading(true);
       setError(null);
       auth.createUser(hashParams, true)
-        .then(u => { setUser(u); setLoading(false); })
+        .then(u => { setUser(u); applyProfile(u); setLoading(false); })
         .catch(err => {
           setError(err.message || 'Authentifizierung fehlgeschlagen.');
           setLoading(false);
@@ -95,6 +175,7 @@ function Root() {
     try {
       const u = await auth.login(email, password, true);
       setUser(u);
+      applyProfile(u);
     } catch (err) {
       setError(err.message || 'Anmeldung fehlgeschlagen. Bitte prüfe deine Zugangsdaten.');
     } finally {
@@ -102,13 +183,11 @@ function Root() {
     }
   }
 
-  // "Passwort vergessen?" — switches to the forgot-password form
   function handleResetPassword() {
     setError(null);
     setPageMode('forgot-password');
   }
 
-  // Submitting the forgot-password email form
   async function handleForgotPasswordSubmit(email) {
     setLoading(true);
     setError(null);
@@ -134,6 +213,7 @@ function Root() {
     try {
       const u = await auth.acceptInvite(invite_token, password, true);
       setUser(u);
+      applyProfile(u);
     } catch (err) {
       setError(err.message || 'Einladung konnte nicht angenommen werden.');
     } finally {
@@ -153,6 +233,7 @@ function Root() {
       const u = await auth.recover(recovery_token, true);
       await u.update({ password });
       setUser(u);
+      applyProfile(u);
     } catch (err) {
       setError(err.message || 'Passwort konnte nicht gesetzt werden.');
     } finally {
@@ -167,6 +248,9 @@ function Root() {
       // ignore logout errors
     }
     setUser(null);
+    setProfileId(null);
+    setProfileName('');
+    setShowOnboarding(false);
     setPageMode('signin');
   }
 
@@ -189,11 +273,24 @@ function Root() {
     );
   }
 
+  if (showOnboarding) {
+    return (
+      <OnboardingScreen
+        user={user}
+        onComplete={(id, name) => {
+          setProfileId(id);
+          setProfileName(name);
+          setShowOnboarding(false);
+        }}
+      />
+    );
+  }
+
   return (
     <App
-      key="waschtl"
-      profileId="waschtl"
-      profileName="Waschtl"
+      key={profileId}
+      profileId={profileId}
+      profileName={profileName}
       profileColor="green"
       onSwitchProfile={handleSignOut}
     />

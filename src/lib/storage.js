@@ -97,3 +97,28 @@ export function removeProfilePin(profileId) {
   delete pins[profileId];
   saveProfilePins(pins);
 }
+
+// ── Netlify Identity profile mapping ─────────────────────────────────────────
+// Maps Netlify user.id (UUID) → local profileId
+
+export function getProfileMapping() {
+  try {
+    const raw = localStorage.getItem('netlify_profile_map');
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function setProfileMapping(uid, profileId) {
+  const map = getProfileMapping();
+  map[uid] = profileId;
+  localStorage.setItem('netlify_profile_map', JSON.stringify(map));
+}
+
+export function copyProfileData(fromId, toId) {
+  for (const key of USER_KEYS) {
+    const val = localStorage.getItem(profileKey(key, fromId));
+    if (val !== null) localStorage.setItem(profileKey(key, toId), val);
+  }
+}

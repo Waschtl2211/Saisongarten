@@ -59,8 +59,16 @@ const SetPasswordForm = ({
   const [confirm, setConfirm] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
 
+  function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password.length < 6) { setLocalError('Mindestens 6 Zeichen.'); return; }
+    if (password !== confirm) { setLocalError('Passwörter stimmen nicht überein.'); return; }
+    setLocalError(null);
+    onSubmit(password);
+  }
+
   return (
-    <div className="space-y-5">
+    <form className="space-y-5" onSubmit={handleSubmit}>
       <div className="animate-element animate-delay-300">
         <label className="text-sm font-medium text-muted-foreground">Neues Passwort</label>
         <GlassInputWrapper>
@@ -91,19 +99,13 @@ const SetPasswordForm = ({
       </div>
       {localError && <p className="text-sm text-destructive">{localError}</p>}
       <button
-        type="button"
+        type="submit"
         disabled={isLoading}
-        onClick={() => {
-          if (password.length < 6) { setLocalError('Mindestens 6 Zeichen.'); return; }
-          if (password !== confirm) { setLocalError('Passwörter stimmen nicht überein.'); return; }
-          setLocalError(null);
-          onSubmit(password);
-        }}
         className="animate-element animate-delay-500 w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
       >
         {isLoading ? '…' : buttonLabel}
       </button>
-    </div>
+    </form>
   );
 };
 

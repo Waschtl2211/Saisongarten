@@ -1406,10 +1406,10 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     try {
       const saved = lsGet('beete', profileId);
       const version = lsGet('beetDataVersion', profileId);
-      const parsed = saved && version === GARDEN_DATA_VERSION ? JSON.parse(saved) : (profileId === 'waschtl' ? initialGardenData : []);
+      const parsed = saved && version === GARDEN_DATA_VERSION ? JSON.parse(saved) : initialGardenData;
       return migratePflanzenZuObjekte(parsed);
     } catch {
-      return migratePflanzenZuObjekte(profileId === 'waschtl' ? initialGardenData : []);
+      return migratePflanzenZuObjekte(initialGardenData);
     }
   });
   const [selectedDate, setSelectedDate] = useState(today);
@@ -1843,8 +1843,6 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
             </button>
           </div>
 
-          {/* PDF – nur für Waschtl */}
-          {profileId === 'waschtl' && (
           <button
             onClick={() => setPdfOffen(true)}
             className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-colors"
@@ -1852,7 +1850,6 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
           >
             📄 PDF
           </button>
-          )}
 
           {/* Dark-Mode-Toggle */}
           <button
