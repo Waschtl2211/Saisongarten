@@ -6,8 +6,6 @@ import App from './App.jsx';
 import { SignInPage } from './components/ui/sign-in.tsx';
 import {
   migrateLegacyData,
-  setProfilePin,
-  loadProfilePins,
   profileKey,
   getProfileMapping,
   setProfileMapping,
@@ -18,9 +16,7 @@ import {
 
 const auth = new GoTrue({ APIUrl: '/.netlify/identity', setCookie: false });
 
-async function initWaschtl() {
-  const pins = loadProfilePins();
-  if (!pins['waschtl']) await setProfilePin('waschtl', '221187');
+function initWaschtl() {
   migrateLegacyData('waschtl');
 }
 

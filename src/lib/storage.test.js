@@ -8,12 +8,6 @@ import {
   saveProfiles,
   loadCurrentProfileId,
   saveCurrentProfileId,
-  loadProfilePins,
-  saveProfilePins,
-  getProfilePin,
-  setProfilePin,
-  verifyProfilePin,
-  removeProfilePin,
 } from './storage.js';
 
 // Minimal in-memory localStorage mock for Node environment
@@ -161,77 +155,3 @@ describe('loadCurrentProfileId / saveCurrentProfileId', () => {
   });
 });
 
-// ── setProfilePin / verifyProfilePin / removeProfilePin ───────────────────────
-
-describe('setProfilePin / verifyProfilePin / removeProfilePin', () => {
-  it('returns null for unknown profile', () => {
-    expect(getProfilePin('unknown')).toBeNull();
-  });
-
-  it('stores PIN as hashed object, not plaintext', async () => {
-    await setProfilePin('p1', '1234');
-    const stored = getProfilePin('p1');
-    expect(typeof stored).toBe('object');
-    expect(stored.hash).toBeDefined();
-    expect(stored.salt).toBeDefined();
-    expect(stored.hash).not.toBe('1234');
-  });
-
-  it('verifies correct PIN', async () => {
-    await setProfilePin('p1', '1234');
-    expect(await verifyProfilePin('p1', '1234')).toBe(true);
-  });
-
-  it('rejects wrong PIN', async () => {
-    await setProfilePin('p1', '1234');
-    expect(await verifyProfilePin('p1', '9999')).toBe(false);
-  });
-
-  it('handles multiple profiles independently', async () => {
-    await setProfilePin('p1', '1111');
-    await setProfilePin('p2', '2222');
-    expect(await verifyProfilePin('p1', '1111')).toBe(true);
-    expect(await verifyProfilePin('p2', '2222')).toBe(true);
-    expect(await verifyProfilePin('p1', '2222')).toBe(false);
-  });
-
-  it('returns false for unknown profile', async () => {
-    expect(await verifyProfilePin('unknown', '1234')).toBe(false);
-  });
-
-  it('auto-migrates legacy plaintext PIN', async () => {
-    saveProfilePins({ p1: '1234' }); // legacy format
-    expect(await verifyProfilePin('p1', '1234')).toBe(true);
-    // After migration stored as object
-    expect(typeof getProfilePin('p1')).toBe('object');
-  });
-
-  it('removes a PIN', async () => {
-    await setProfilePin('p1', '1234');
-    removeProfilePin('p1');
-    expect(getProfilePin('p1')).toBeNull();
-  });
-
-  it('remove for unknown profile does not throw', () => {
-    expect(() => removeProfilePin('nonexistent')).not.toThrow();
-  });
-});
-
-// ── loadProfilePins / saveProfilePins ─────────────────────────────────────────
-
-describe('loadProfilePins / saveProfilePins', () => {
-  it('returns an empty object when no data exists', () => {
-    expect(loadProfilePins()).toEqual({});
-  });
-
-  it('round-trips a pins object correctly', () => {
-    const pins = { p1: '1234', p2: '5678' };
-    saveProfilePins(pins);
-    expect(loadProfilePins()).toEqual(pins);
-  });
-
-  it('returns an empty object on corrupt JSON', () => {
-    localStorage.setItem('profilePins', 'not-valid-json{');
-    expect(loadProfilePins()).toEqual({});
-  });
-});

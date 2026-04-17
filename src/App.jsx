@@ -7,7 +7,7 @@ function deMonat(date) { return `${DE_MONATE[date.getMonth()]} ${date.getFullYea
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Chatbot from './components/Chatbot';
-import { lsGet, lsSet, getProfilePin, setProfilePin, verifyProfilePin, exportProfileData, importProfileData } from './lib/storage.js';
+import { lsGet, lsSet, exportProfileData, importProfileData } from './lib/storage.js';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -372,7 +372,7 @@ function PflanzenBadges({ pflanzen, gepflanzt, selectedDate }) {
 }
 
 function DialogPlantManager({ beet, selectedDate, onUpdate, giessenLog, wetterDaten, onGiessen }) {
-  const [pflanzen, setPflanzen] = useState(beet.pflanzen);
+  const [pflanzen, setPflanzen] = useState(() => (beet.pflanzen || []).map(pflanzeName));
   const [newPlant, setNewPlant] = useState('');
   const [naechste, setNaechste] = useState(beet.naechste || '');
   const [naechsteInput, setNaechsteInput] = useState('');
@@ -1502,11 +1502,6 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
   const [undoStack, setUndoStack] = useState([]);
   const [editingLabel, setEditingLabel] = useState(null);
   const [editingLabelVal, setEditingLabelVal] = useState('');
-  const [pinAlt, setPinAlt] = useState('');
-  const [pinNeu, setPinNeu] = useState('');
-  const [pinNeuBestaetigt, setPinNeuBestaetigt] = useState('');
-  const [pinChangeMsg, setPinChangeMsg] = useState(null);
-  const [pinChangeOffen, setPinChangeOffen] = useState(false);
   const [beetOrder, setBeetOrder] = useState(() => {
     try { return JSON.parse(lsGet('beetOrder', profileId) || 'null'); } catch { return null; }
   });
@@ -1664,7 +1659,9 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     const a = document.createElement('a');
     a.href = url;
     a.download = `saisongarten_${profileId}_${format(new Date(), 'yyyy-MM-dd')}.json`;
+    document.body.appendChild(a);
     a.click();
+    document.body.removeChild(a);
     URL.revokeObjectURL(url);
   }
 
@@ -2070,64 +2067,6 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                   </div>
                 ))}
               </div>
-            </div>
-            {/* PIN ändern – ausgeklappt per Button */}
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <button
-                onClick={() => { setPinAlt(''); setPinNeu(''); setPinNeuBestaetigt(''); setPinChangeMsg(null); setPinChangeOffen(o => !o); }}
-                className="flex items-center gap-1.5 text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors"
-              >
-                <span className={`text-[10px] transition-transform duration-150 ${pinChangeOffen ? 'rotate-90' : ''}`}>▶</span>
-                🔑 PIN ändern
-              </button>
-              {pinChangeOffen && (
-                <div className="mt-3 space-y-2">
-                  <input
-                    autoFocus
-                    type="password"
-                    inputMode="numeric"
-                    placeholder="Aktueller PIN…"
-                    value={pinAlt}
-                    onChange={e => { setPinAlt(e.target.value); setPinChangeMsg(null); }}
-                    className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-green-400"
-                  />
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    placeholder="Neuer PIN…"
-                    value={pinNeu}
-                    onChange={e => { setPinNeu(e.target.value); setPinChangeMsg(null); }}
-                    className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-green-400"
-                  />
-                  <input
-                    type="password"
-                    inputMode="numeric"
-                    placeholder="Neuer PIN bestätigen…"
-                    value={pinNeuBestaetigt}
-                    onChange={e => { setPinNeuBestaetigt(e.target.value); setPinChangeMsg(null); }}
-                    className="w-full border border-gray-200 dark:border-gray-600 rounded-lg px-3 py-1.5 text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-1 focus:ring-green-400"
-                  />
-                  {pinChangeMsg && (
-                    <div className={`text-xs ${pinChangeMsg.ok ? 'text-green-600 dark:text-green-400' : 'text-red-500'}`}>
-                      {pinChangeMsg.text}
-                    </div>
-                  )}
-                  <button
-                    onClick={async () => {
-                      if (!(await verifyProfilePin(profileId, pinAlt))) { setPinChangeMsg({ ok: false, text: 'Aktueller PIN ist falsch' }); return; }
-                      if (pinNeu.length < 4) { setPinChangeMsg({ ok: false, text: 'Neuer PIN muss mindestens 4 Stellen haben' }); return; }
-                      if (pinNeu !== pinNeuBestaetigt) { setPinChangeMsg({ ok: false, text: 'Neue PINs stimmen nicht überein' }); return; }
-                      await setProfilePin(profileId, pinNeu);
-                      setPinAlt(''); setPinNeu(''); setPinNeuBestaetigt('');
-                      setPinChangeMsg({ ok: true, text: '✓ PIN erfolgreich geändert' });
-                      setTimeout(() => { setPinChangeOffen(false); setPinChangeMsg(null); }, 1500);
-                    }}
-                    className="w-full bg-green-600 hover:bg-green-700 text-white py-1.5 rounded-lg text-xs font-medium transition-colors"
-                  >
-                    PIN speichern
-                  </button>
-                </div>
-              )}
             </div>
             {/* Schriftgröße */}
             <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">

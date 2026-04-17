@@ -65,57 +65,6 @@ export function saveCurrentProfileId(id) {
   localStorage.setItem('currentProfile', id);
 }
 
-// ── Profile PIN helpers ───────────────────────────────────────────────────────
-// Stored as { profileId: pin } under key 'profilePins'
-// Visible in DevTools → Application → Local Storage → key: profilePins
-
-export function loadProfilePins() {
-  try {
-    const raw = localStorage.getItem('profilePins');
-    return raw ? JSON.parse(raw) : {};
-  } catch {
-    return {};
-  }
-}
-
-export function saveProfilePins(pins) {
-  localStorage.setItem('profilePins', JSON.stringify(pins));
-}
-
-export function getProfilePin(profileId) {
-  return loadProfilePins()[profileId] ?? null;
-}
-
-async function sha256hex(message) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(message));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2, '0')).join('');
-}
-
-export async function setProfilePin(profileId, pin) {
-  const salt = crypto.randomUUID();
-  const hash = await sha256hex(salt + pin);
-  const pins = loadProfilePins();
-  pins[profileId] = { hash, salt };
-  saveProfilePins(pins);
-}
-
-export async function verifyProfilePin(profileId, pin) {
-  const stored = loadProfilePins()[profileId];
-  if (!stored) return false;
-  if (typeof stored === 'string') {
-    // Legacy plaintext — verify and auto-upgrade
-    if (pin !== stored) return false;
-    await setProfilePin(profileId, pin);
-    return true;
-  }
-  return (await sha256hex(stored.salt + pin)) === stored.hash;
-}
-
-export function removeProfilePin(profileId) {
-  const pins = loadProfilePins();
-  delete pins[profileId];
-  saveProfilePins(pins);
-}
 
 // ── Netlify Identity profile mapping ─────────────────────────────────────────
 // Maps Netlify user.id (UUID) → local profileId
