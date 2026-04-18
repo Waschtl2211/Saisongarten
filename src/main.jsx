@@ -121,10 +121,14 @@ function Root() {
     }
 
     // Recover existing session
-    const existing = auth.currentUser();
-    if (existing) {
-      setUser(existing);
-      applyProfile(existing);
+    try {
+      const existing = auth.currentUser();
+      if (existing) {
+        setUser(existing);
+        applyProfile(existing);
+      }
+    } catch {
+      // session expired/corrupted → show sign-in
     }
     setAuthReady(true);
   }, []);

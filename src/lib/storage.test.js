@@ -8,6 +8,11 @@ import {
   saveProfiles,
   loadCurrentProfileId,
   saveCurrentProfileId,
+  exportProfileData,
+  importProfileData,
+  getProfileMapping,
+  setProfileMapping,
+  copyProfileData,
 } from './storage.js';
 
 // Minimal in-memory localStorage mock for Node environment
@@ -152,6 +157,109 @@ describe('loadCurrentProfileId / saveCurrentProfileId', () => {
   it('round-trips the current profile ID', () => {
     saveCurrentProfileId('p1');
     expect(loadCurrentProfileId()).toBe('p1');
+  });
+});
+
+// ── exportProfileData ─────────────────────────────────────────────────────────
+
+describe('exportProfileData', () => {
+  it('exports all USER_KEYS that exist', () => {
+    localStorage.setItem('beete_p1', JSON.stringify([{ beet: 1 }]));
+    localStorage.setItem('giessenLog_p1', JSON.stringify({ 1: ['2024-05-01'] }));
+    const result = exportProfileData('p1');
+    expect(result.version).toBe('1.0');
+    expect(result.profileId).toBe('p1');
+    expect(result.exportedAt).toBeTruthy();
+    expect(result.data.beete).toEqual([{ beet: 1 }]);
+    expect(result.data.giessenLog).toEqual({ 1: ['2024-05-01'] });
+  });
+
+  it('skips keys not in localStorage', () => {
+    const result = exportProfileData('p1');
+    expect(result.data.beete).toBeUndefined();
+  });
+
+  it('handles corrupt JSON value gracefully', () => {
+    localStorage.setItem('beete_p1', 'not-valid-json{');
+    localStorage.setItem('giessenLog_p1', JSON.stringify({}));
+    const result = exportProfileData('p1');
+    expect(result.data.beete).toBeUndefined();
+    expect(result.data.giessenLog).toEqual({});
+  });
+
+  it('returns correct metadata structure', () => {
+    const result = exportProfileData('test-id');
+    expect(result).toMatchObject({ version: '1.0', profileId: 'test-id' });
+    expect(typeof result.exportedAt).toBe('string');
+  });
+});
+
+// ── importProfileData ─────────────────────────────────────────────────────────
+
+describe('importProfileData', () => {
+  it('writes all keys from data to correct namespaced localStorage keys', () => {
+    const exported = { data: { beete: [{ beet: 1 }], giessenLog: { 1: [] } } };
+    importProfileData('p1', exported);
+    expect(localStorage.getItem('beete_p1')).toBe(JSON.stringify([{ beet: 1 }]));
+    expect(localStorage.getItem('giessenLog_p1')).toBe(JSON.stringify({ 1: [] }));
+  });
+
+  it('skips undefined keys', () => {
+    const exported = { data: { beete: [{ beet: 1 }] } };
+    importProfileData('p1', exported);
+    expect(localStorage.getItem('giessenLog_p1')).toBeNull();
+  });
+
+  it('is idempotent — re-importing same data overwrites cleanly', () => {
+    const exported = { data: { beete: [{ beet: 1 }] } };
+    importProfileData('p1', exported);
+    importProfileData('p1', exported);
+    expect(JSON.parse(localStorage.getItem('beete_p1'))).toEqual([{ beet: 1 }]);
+  });
+});
+
+// ── getProfileMapping / setProfileMapping ────────────────────────────────────
+
+describe('getProfileMapping / setProfileMapping', () => {
+  it('returns empty object when no data exists', () => {
+    expect(getProfileMapping()).toEqual({});
+  });
+
+  it('stores and retrieves uid → profileId mapping', () => {
+    setProfileMapping('uid-123', 'waschtl');
+    expect(getProfileMapping()['uid-123']).toBe('waschtl');
+  });
+
+  it('multiple uids coexist without overwriting each other', () => {
+    setProfileMapping('uid-a', 'profile-a');
+    setProfileMapping('uid-b', 'profile-b');
+    const map = getProfileMapping();
+    expect(map['uid-a']).toBe('profile-a');
+    expect(map['uid-b']).toBe('profile-b');
+  });
+});
+
+// ── copyProfileData ───────────────────────────────────────────────────────────
+
+describe('copyProfileData', () => {
+  it('copies all USER_KEYS from source to target profile', () => {
+    localStorage.setItem('beete_src', JSON.stringify([{ beet: 1 }]));
+    localStorage.setItem('giessenLog_src', JSON.stringify({}));
+    copyProfileData('src', 'dst');
+    expect(localStorage.getItem('beete_dst')).toBe(JSON.stringify([{ beet: 1 }]));
+    expect(localStorage.getItem('giessenLog_dst')).toBe(JSON.stringify({}));
+  });
+
+  it('skips keys not in source profile', () => {
+    copyProfileData('src', 'dst');
+    expect(localStorage.getItem('beete_dst')).toBeNull();
+  });
+
+  it('does not affect unrelated profiles', () => {
+    localStorage.setItem('beete_other', 'other_data');
+    localStorage.setItem('beete_src', JSON.stringify([{ beet: 2 }]));
+    copyProfileData('src', 'dst');
+    expect(localStorage.getItem('beete_other')).toBe('other_data');
   });
 });
 

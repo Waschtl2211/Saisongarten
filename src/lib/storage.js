@@ -89,8 +89,12 @@ export function setProfileMapping(uid, profileId) {
 export function exportProfileData(profileId) {
   const data = {};
   for (const key of USER_KEYS) {
-    const val = localStorage.getItem(profileKey(key, profileId));
-    if (val !== null) data[key] = JSON.parse(val);
+    try {
+      const raw = localStorage.getItem(profileKey(key, profileId));
+      if (raw !== null) data[key] = JSON.parse(raw);
+    } catch {
+      // corrupt localStorage value → skip
+    }
   }
   return { version: '1.0', exportedAt: new Date().toISOString(), profileId, data };
 }

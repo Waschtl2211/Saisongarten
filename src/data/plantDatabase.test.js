@@ -204,3 +204,47 @@ describe('getNeighborRelation', () => {
     expect(Array.isArray(result.schlechtMit)).toBe(true);
   });
 });
+
+// ── Neue Pflanzen vollständig ─────────────────────────────────────────────────
+
+describe('neue Pflanzen vollständig', () => {
+  const NEUE_PFLANZEN = ['Thymian', 'Oregano', 'Rosmarin', 'Salbei', 'Minze', 'Erdbeeren'];
+
+  for (const name of NEUE_PFLANZEN) {
+    it(`${name} ist in der Datenbank`, () => {
+      expect(findPflanze(name)).not.toBeNull();
+    });
+
+    it(`${name} hat pflanzMonate`, () => {
+      expect(findPflanze(name)?.pflanzMonate.length).toBeGreaterThan(0);
+    });
+
+    it(`${name} hat ernteBeschreibung`, () => {
+      expect(findPflanze(name)?.ernteBeschreibung).toBeTruthy();
+    });
+
+    it(`${name} hat giessIntervall`, () => {
+      expect(findPflanze(name)?.giessIntervall).toBeGreaterThan(0);
+    });
+  }
+
+  it('Thymian wird per Alias "thyme" gefunden', () => {
+    expect(findPflanze('thyme')?.name).toBe('Thymian');
+  });
+
+  it('Oregano wird per Alias "wilder majoran" gefunden', () => {
+    expect(findPflanze('origanum vulgare')?.name).toBe('Oregano');
+  });
+
+  it('Erdbeeren wird per Alias "strawberry" gefunden', () => {
+    expect(findPflanze('strawberry')?.name).toBe('Erdbeeren');
+  });
+
+  it('alle neuen Pflanzen haben gut/schlecht Arrays', () => {
+    for (const name of NEUE_PFLANZEN) {
+      const p = findPflanze(name);
+      expect(Array.isArray(p?.gut), `${name}: gut`).toBe(true);
+      expect(Array.isArray(p?.schlecht), `${name}: schlecht`).toBe(true);
+    }
+  });
+});

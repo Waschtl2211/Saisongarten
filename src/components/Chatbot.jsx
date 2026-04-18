@@ -184,15 +184,20 @@ function getMonatsTipp(monat) {
 }
 
 // ── Markdown-Renderer (mini) ──────────────────────────────────────────────────
+function formatBold(line) {
+  if (!line.trim()) return <span>&nbsp;</span>;
+  const parts = line.split(/\*\*(.+?)\*\*/g);
+  return parts.map((part, i) => i % 2 === 1 ? <strong key={i}>{part}</strong> : part);
+}
+
 function renderAntwort(text) {
-  return text.split('\n').map((line, i) => {
-    const bold = line.replace(/\*\*(.+?)\*\*/g, (_, t) => `<strong>${t}</strong>`);
-    return <p key={i} className="mb-1 last:mb-0 leading-relaxed" dangerouslySetInnerHTML={{ __html: bold || '&nbsp;' }} />;
-  });
+  return text.split('\n').map((line, i) => (
+    <p key={i} className="mb-1 last:mb-0 leading-relaxed">{formatBold(line)}</p>
+  ));
 }
 
 // ── Aktions-Erkennung ────────────────────────────────────────────────────────
-function detectAction(text, beete, selectedDate, onGiessen, onUpdateBeet) {
+function detectAction(text, beete, selectedDate, onGiessen, onUpdateBeet, onDuengen) {
   const lc = text.toLowerCase().trim();
 
   // "ich habe beet N gegossen"
@@ -214,6 +219,18 @@ function detectAction(text, beete, selectedDate, onGiessen, onUpdateBeet) {
     return {
       text: `✅ ${gepflanzt.length} Beet${gepflanzt.length > 1 ? 'e' : ''} wurden als gegossen markiert!`,
       action: () => gepflanzt.forEach(b => onGiessen?.(b.beet, selectedDate)),
+    };
+  }
+
+  // "ich habe beet N gedüngt"
+  const duengenMatch = lc.match(/(?:ich habe?|hab)\s+beet\s*(\d+)\s+(?:ged[üu]ngt|gef[üu]ttert|mit\s+d[üu]nger)/);
+  if (duengenMatch) {
+    const beetId = Number(duengenMatch[1]);
+    const beet = beete.find(b => b.beet === beetId);
+    if (!beet) return { text: `Beet ${beetId} gibt es nicht.` };
+    return {
+      text: `✅ Beet ${beetId} wurde als gedüngt markiert!`,
+      action: () => onDuengen?.(beetId, selectedDate),
     };
   }
 
@@ -239,7 +256,7 @@ function detectAction(text, beete, selectedDate, onGiessen, onUpdateBeet) {
 }
 
 // ── Chatbot Component ─────────────────────────────────────────────────────────
-export default function Chatbot({ beete, selectedDate, onGiessen, onUpdateBeet }) {
+export default function Chatbot({ beete, selectedDate, onGiessen, onDuengen, onUpdateBeet }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -258,7 +275,7 @@ export default function Chatbot({ beete, selectedDate, onGiessen, onUpdateBeet }
     const text = input.trim();
     if (!text) return;
     const userMsg = { role: 'user', text };
-    const detected = detectAction(text, beete, selectedDate, onGiessen, onUpdateBeet);
+    const detected = detectAction(text, beete, selectedDate, onGiessen, onUpdateBeet, onDuengen);
     if (detected) {
       detected.action?.();
       setMessages(prev => [...prev, userMsg, { role: 'bot', text: detected.text }]);

@@ -8,6 +8,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Chatbot from './components/Chatbot';
 import { lsGet, lsSet, exportProfileData, importProfileData } from './lib/storage.js';
+import { getWetterFuerTag, berechneGiessIntervall, berechneRegenCredits, brauchtGiessen, brauchtDuengen } from './lib/gardenLogic.js';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -115,22 +116,6 @@ const STAEDTE = [
   { name: 'Salzburg',  lat: 47.8095, lon: 13.0550 },
 ];
 
-function getWetterFuerTag(date, wetterDaten) {
-  if (!wetterDaten?.daily) return null;
-  const dateStr = format(date, 'yyyy-MM-dd');
-  const idx = wetterDaten.daily.time.indexOf(dateStr);
-  if (idx === -1) return null;
-  const now = new Date(); now.setHours(0, 0, 0, 0);
-  const d = new Date(date); d.setHours(0, 0, 0, 0);
-  return {
-    maxTemp: wetterDaten.daily.temperature_2m_max[idx],
-    minTemp: wetterDaten.daily.temperature_2m_min[idx],
-    precipitation: wetterDaten.daily.precipitation_sum[idx] ?? 0,
-    precipProb: wetterDaten.daily.precipitation_probability_max[idx] ?? 0,
-    isForecast: d > now,
-  };
-}
-
 function fetchWetter(lat, lon, onData, onLaden, onFehler) {
   onLaden(true);
   fetch(
@@ -139,133 +124,6 @@ function fetchWetter(lat, lon, onData, onLaden, onFehler) {
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
     .then(data => { onData(data); onLaden(false); })
     .catch(() => { onFehler('Wetter konnte nicht geladen werden'); onLaden(false); });
-}
-
-function berechneGiessIntervall(pflanzen) {
-  const intervalle = pflanzen.map(p => findPflanze(p)?.giessIntervall ?? null).filter(v => v !== null);
-  return intervalle.length ? Math.min(...intervalle) : 3;
-}
-
-function brauchtDuengen(beet, date, duengenLog) {
-  if (!beet.pflanzen?.length) return { noetig: false };
-  if (parseISO(beet.gepflanzt) > date) return { noetig: false, nochNichtGepflanzt: true };
-
-  // Nur Pflanzen mit Intervall-Tracking berücksichtigen
-  const relevanteIntervalle = beet.pflanzen.map(p => {
-    const info = findPflanze(p);
-    return info?.duenger?.intervallWochen ?? null;
-  }).filter(v => v !== null);
-
-  if (relevanteIntervalle.length === 0) return { noetig: false };
-
-  const intervallTage = Math.min(...relevanteIntervalle) * 7;
-
-  const log = (duengenLog[beet.beet] || [])
-    .map(d => parseISO(d))
-    .filter(d => !isNaN(d))
-    .sort((a, b) => b - a);
-
-  const letztesDuengen = log[0] || null;
-
-  if (!letztesDuengen) {
-    return {
-      noetig: true,
-      letztesDuengen: null,
-      naechstesDuengen: null,
-      tageSeit: null,
-      intervall: intervallTage,
-      grund: 'Noch nicht gedüngt',
-    };
-  }
-
-  const tageSeit = differenceInDays(date, letztesDuengen);
-  const naechstesDuengen = new Date(letztesDuengen);
-  naechstesDuengen.setDate(naechstesDuengen.getDate() + intervallTage);
-
-  return {
-    noetig: tageSeit >= intervallTage,
-    letztesDuengen,
-    naechstesDuengen,
-    tageSeit,
-    intervall: intervallTage,
-    grund: tageSeit >= intervallTage
-      ? `Seit ${tageSeit} Tagen nicht gedüngt (Intervall: ${intervallTage} Tage)`
-      : `Nächstes Düngen: ${format(naechstesDuengen, 'dd.MM.')}`,
-  };
-}
-
-function berechneRegenCredits(vonDatum, bisDatum, wetterDaten) {
-  if (!wetterDaten?.daily) return 0;
-  let credits = 0;
-  const current = new Date(vonDatum); current.setHours(0, 0, 0, 0);
-  const end = new Date(bisDatum); end.setHours(0, 0, 0, 0);
-  while (current < end) {
-    const w = getWetterFuerTag(current, wetterDaten);
-    if (w && !w.isForecast) {
-      if (w.precipitation >= 15) credits += 1;
-      else if (w.precipitation >= 5) credits += 0.5;
-    }
-    current.setDate(current.getDate() + 1);
-  }
-  return credits;
-}
-
-function brauchtGiessen(beet, date, giessenLog, wetterDaten) {
-  if (!beet.pflanzen?.length) return { noetig: false };
-  const dateCopy = new Date(date); dateCopy.setHours(0, 0, 0, 0);
-  const gepflanzt = parseISO(beet.gepflanzt);
-  gepflanzt.setHours(0, 0, 0, 0);
-  if (dateCopy < gepflanzt) return { noetig: false, nochNichtGepflanzt: true, grund: 'Noch nicht gepflanzt' };
-
-  const log = (giessenLog[beet.beet] || [])
-    .map(d => { const x = new Date(d); x.setHours(0, 0, 0, 0); return x; })
-    .filter(d => d <= dateCopy)
-    .sort((a, b) => b - a);
-
-  const letzteGiessung = log[0] || null;
-  const basisIntervall = berechneGiessIntervall(beet.pflanzen);
-
-  if (!letzteGiessung) {
-    const rawDays = differenceInDays(dateCopy, gepflanzt);
-    const regenCredits = berechneRegenCredits(gepflanzt, dateCopy, wetterDaten);
-    const effektiveTage = Math.max(0, rawDays - regenCredits);
-    return {
-      noetig: effektiveTage >= basisIntervall,
-      tageSeit: rawDays,
-      regenCredits: Math.round(regenCredits * 10) / 10,
-      effektiveTage: Math.round(effektiveTage * 10) / 10,
-      intervall: basisIntervall,
-      letzteGiessung: null,
-      grund: effektiveTage >= basisIntervall
-        ? 'Noch nie gegossen'
-        : `${Math.round(effektiveTage)} von ${basisIntervall} Tagen`,
-    };
-  }
-
-  const rawDays = differenceInDays(dateCopy, letzteGiessung);
-  const regenCredits = berechneRegenCredits(letzteGiessung, dateCopy, wetterDaten);
-  const effektiveTage = Math.max(0, rawDays - regenCredits);
-
-  let intervall = basisIntervall;
-  const wetter = getWetterFuerTag(dateCopy, wetterDaten);
-  if (wetter?.maxTemp >= 28) intervall = Math.max(1, intervall - 1);
-
-  const noetig = effektiveTage >= intervall;
-  const naechstesGiessen = new Date(letzteGiessung);
-  naechstesGiessen.setDate(naechstesGiessen.getDate() + intervall);
-
-  return {
-    noetig,
-    tageSeit: rawDays,
-    regenCredits: Math.round(regenCredits * 10) / 10,
-    effektiveTage: Math.round(effektiveTage * 10) / 10,
-    intervall,
-    letzteGiessung,
-    naechstesGiessen,
-    grund: noetig
-      ? `${Math.round(effektiveTage)} effektive Tage ≥ Intervall ${intervall} Tage`
-      : `Nächstes Gießen: ${format(naechstesGiessen, 'dd.MM.')}`,
-  };
 }
 
 function ReihenAnzeige({ beet }) {
@@ -944,7 +802,7 @@ function WetterStreifen({ wetterDaten, wetterLaedt, wetterFehler, standort, sele
   );
 }
 
-function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessenAlle }) {
+function TagesAufgaben({ beete, selectedDate, giessenLog, duengenLog, wetterDaten, onGiessenAlle, onDuengen }) {
   const [eingeklappt, setEingeklappt] = useState(new Set());
   const [aufgeklappt, setAufgeklappt] = useState(null);
   const toggleSektion = (prio) => setEingeklappt(prev => {
@@ -1039,6 +897,28 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
     }
   });
 
+  // 1b. Düngen
+  if (duengenLog) {
+    gepflanztBeete.forEach(beet => {
+      const ds = brauchtDuengen(beet, selectedDate, duengenLog);
+      if (ds.noetig) {
+        aufgaben.push({
+          typ: 'duengen', icon: '🌿', prio: 2,
+          beetId: beet.beet,
+          text: `Beet ${beet.beet} düngen`,
+          sub: ds.grund,
+          details: [
+            ds.letztesDuengen
+              ? `📅 Zuletzt gedüngt: ${format(ds.letztesDuengen, 'dd.MM.yyyy')}`
+              : '📅 Noch nie gedüngt',
+            `⏱ Intervall: alle ${ds.intervall} Tage`,
+            `🌱 Pflanzen: ${[...new Set(beet.pflanzen.map(pflanzeName))].join(', ')}`,
+          ].filter(Boolean),
+        });
+      }
+    });
+  }
+
   // 2. Regen morgen erwartet
   const morgen = new Date(selectedDate); morgen.setDate(morgen.getDate() + 1);
   const regenMorgen = getWetterFuerTag(morgen, wetterDaten);
@@ -1046,7 +926,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
     const uebermorgen = new Date(selectedDate); uebermorgen.setDate(uebermorgen.getDate() + 2);
     const regenUebermorgen = getWetterFuerTag(uebermorgen, wetterDaten);
     aufgaben.push({
-      typ: 'regen', icon: '🌧️', prio: 2,
+      typ: 'regen', icon: '🌧️', prio: 3,
       text: `Morgen ~${regenMorgen.precipitation.toFixed(0)} mm Regen (${regenMorgen.precipProb}%)`,
       sub: 'Gießen heute ggf. sparen',
       details: [
@@ -1070,7 +950,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
     const kraeuter = erntereif.filter(p => KRAEUTER.has(pflanzeName(p)));
     if (gemuese.length) {
       aufgaben.push({
-        typ: 'ernte', icon: '🌾', prio: 3,
+        typ: 'ernte', icon: '🌾', prio: 4,
         text: `Beet ${beet.beet} ernten`,
         sub: gemuese.map(p => `${findPflanze(p)?.icon||''} ${pflanzeName(p)}`).join(' · '),
         details: gemuese.map(p => {
@@ -1084,7 +964,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
     }
     if (kraeuter.length) {
       aufgaben.push({
-        typ: 'rueckschnitt', icon: '✂️', prio: 3,
+        typ: 'rueckschnitt', icon: '✂️', prio: 4,
         text: `Beet ${beet.beet} – Kräuter schneiden`,
         sub: kraeuter.map(p => `${findPflanze(p)?.icon||''} ${pflanzeName(p)}`).join(' · '),
         details: [
@@ -1115,7 +995,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
       if (beet.naechste) subParts.push(`Plan: ${beet.naechste}`);
       if (alternativen.length) subParts.push(`Jetzt pflanzbar: ${alternativen.slice(0,3).map(p => `${p.icon} ${p.name}`).join(', ')}`);
       aufgaben.push({
-        typ: 'raeumen', icon: '🔄', prio: 4,
+        typ: 'raeumen', icon: '🔄', prio: 5,
         text: `Beet ${beet.beet} in ${tage} ${tage === 1 ? 'Tag' : 'Tagen'} räumen`,
         sub: subParts.join(' · ') || 'Nachfolger planen',
         details: [
@@ -1139,7 +1019,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
     }
     if (trockentage >= 4 && gepflanztBeete.length > 0) {
       aufgaben.push({
-        typ: 'auflocken', icon: '⛏️', prio: 5,
+        typ: 'auflocken', icon: '⛏️', prio: 6,
         text: 'Beete auflocken',
         sub: `${trockentage} Tage ohne nennenswerten Regen – Bodenkruste aufbrechen`,
         details: [
@@ -1171,7 +1051,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
 
   if (ranked.length > 0) {
     aufgaben.push({
-      typ: 'pflanzen', icon: '🌱', prio: 6,
+      typ: 'pflanzen', icon: '🌱', prio: 7,
       text: 'Jetzt pflanzen / säen',
       sub: ranked.slice(0, 5).map(p => `${p.icon} ${p.name}`).join(' · '),
       details: ranked.map(p => {
@@ -1184,6 +1064,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
   const FARBEN = {
     warnung:     'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
     giessen:     'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-700',
+    duengen:     'bg-lime-50 dark:bg-lime-900/20 border-lime-200 dark:border-lime-700',
     regen:       'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-700',
     ernte:       'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700',
     rueckschnitt:'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-700',
@@ -1195,11 +1076,12 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
   const SEKTIONEN = [
     { prio: 0, label: '⚠️ Dringend' },
     { prio: 1, label: '💧 Bewässerung' },
-    { prio: 2, label: '🌧️ Wetter' },
-    { prio: 3, label: '🌾 Ernte' },
-    { prio: 4, label: '🔄 Beetpflege' },
-    { prio: 5, label: '⛏️ Bodenarbeit' },
-    { prio: 6, label: '🌱 Pflanzen & Säen' },
+    { prio: 2, label: '🌿 Düngen' },
+    { prio: 3, label: '🌧️ Wetter' },
+    { prio: 4, label: '🌾 Ernte' },
+    { prio: 5, label: '🔄 Beetpflege' },
+    { prio: 6, label: '⛏️ Bodenarbeit' },
+    { prio: 7, label: '🌱 Pflanzen & Säen' },
   ];
 
   aufgaben.sort((a, b) => a.prio - b.prio);
@@ -1240,6 +1122,14 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
                     💧 Alle gießen
                   </button>
                 )}
+                {sek.prio === 2 && items.length > 1 && onDuengen && (
+                  <button
+                    onClick={(e) => { e.stopPropagation(); items.forEach(a => a.beetId != null && onDuengen(a.beetId, new Date())); }}
+                    className="text-xs font-semibold text-lime-600 dark:text-lime-400 hover:text-lime-800 dark:hover:text-lime-200 transition-colors border border-lime-300 dark:border-lime-600 rounded-full px-2 py-0.5 shrink-0"
+                  >
+                    🌿 Alle düngen
+                  </button>
+                )}
               </div>
               {!istEingeklappt && (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
@@ -1269,6 +1159,14 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, wetterDaten, onGiessen
                                   <div key={di} className="text-xs text-gray-600 dark:text-gray-300 leading-snug">{d}</div>
                                 ))}
                               </div>
+                            )}
+                            {a.typ === 'duengen' && onDuengen && a.beetId != null && (
+                              <button
+                                onClick={(e) => { e.stopPropagation(); onDuengen(a.beetId, new Date()); }}
+                                className="mt-2 text-xs font-semibold text-lime-700 dark:text-lime-300 hover:text-lime-900 dark:hover:text-lime-100 transition-colors border border-lime-300 dark:border-lime-600 rounded-full px-2 py-0.5"
+                              >
+                                ✓ Gedüngt
+                              </button>
                             )}
                           </div>
                         </div>
@@ -1652,6 +1550,18 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
 
   const importInputRef = useRef(null);
 
+  function validateImportData(data) {
+    const ARRAY_KEYS = ['beete', 'archivierteBeete', 'ernteLog', 'pinnedBeete', 'beetOrder'];
+    const OBJ_KEYS   = ['giessenLog', 'duengenLog', 'beetNotizen'];
+    for (const k of ARRAY_KEYS) {
+      if (data[k] !== undefined && !Array.isArray(data[k])) return false;
+    }
+    for (const k of OBJ_KEYS) {
+      if (data[k] !== undefined && (typeof data[k] !== 'object' || Array.isArray(data[k]))) return false;
+    }
+    return true;
+  }
+
   function handleExport() {
     const exported = exportProfileData(profileId);
     const blob = new Blob([JSON.stringify(exported, null, 2)], { type: 'application/json' });
@@ -1669,13 +1579,15 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     const file = e.target.files?.[0];
     if (!file) return;
     try {
+      if (file.size > 2 * 1024 * 1024) throw new Error('Datei zu groß (max 2 MB)');
       const parsed = JSON.parse(await file.text());
-      if (parsed.version !== '1.0' || !parsed.data) throw new Error('Ungültig');
+      if (parsed.version !== '1.0' || typeof parsed.data !== 'object' || !parsed.data) throw new Error('Ungültig');
+      if (!validateImportData(parsed.data)) throw new Error('Ungültiges Schema');
       if (!window.confirm('Bestehende Daten werden überschrieben. Fortfahren?')) return;
       importProfileData(profileId, parsed);
       window.location.reload();
-    } catch {
-      alert('Ungültige Backup-Datei.');
+    } catch (err) {
+      alert(`Ungültige Backup-Datei: ${err.message}`);
     } finally {
       if (importInputRef.current) importInputRef.current.value = '';
     }
@@ -2105,7 +2017,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
         onOrtsWahl={handleOrtsWahl}
       />
 
-      <TagesAufgaben beete={beete} selectedDate={selectedDate} giessenLog={giessenLog} wetterDaten={wetterDaten} onGiessenAlle={handleAlleGiessen} />
+      <TagesAufgaben beete={beete} selectedDate={selectedDate} giessenLog={giessenLog} duengenLog={duengenLog} wetterDaten={wetterDaten} onGiessenAlle={handleAlleGiessen} onDuengen={handleDuengen} />
 
       <main className="max-w-7xl mx-auto px-4 pb-10">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
@@ -2504,7 +2416,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
         &copy; 2026 Saisongarten App
       </footer>
 
-      <Chatbot beete={beete} selectedDate={selectedDate} onGiessen={handleGiessen} onUpdateBeet={(beetId, pflanzen) => updateBeeetPflanzen(beetId, pflanzen, undefined)} />
+      <Chatbot beete={beete} selectedDate={selectedDate} onGiessen={handleGiessen} onDuengen={handleDuengen} onUpdateBeet={(beetId, pflanzen) => updateBeeetPflanzen(beetId, pflanzen, undefined)} />
 
       {/* PDF-Overlay */}
       {pdfOffen && (

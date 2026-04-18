@@ -25,14 +25,20 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,woff2}'],
         navigateFallback: '/index.html',
-        runtimeCaching: [{
-          urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
-          handler: 'NetworkFirst',
-          options: {
-            cacheName: 'weather-cache',
-            expiration: { maxEntries: 10, maxAgeSeconds: 3600 },
+        runtimeCaching: [
+          {
+            urlPattern: /\/.netlify\//,
+            handler: 'NetworkOnly',
           },
-        }],
+          {
+            urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'weather-cache',
+              expiration: { maxEntries: 10, maxAgeSeconds: 3600 },
+            },
+          },
+        ],
       },
     }),
   ],
