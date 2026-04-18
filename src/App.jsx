@@ -1506,7 +1506,7 @@ function KalenderTab({ beete, ernteLog, selectedDate }) {
   );
 }
 
-function App({ profileId, profileName, profileColor, onSwitchProfile }) {
+function App({ profileId, profileName, profileColor, onSwitchProfile, onRenameProfile }) {
   const [beete, setBeete] = useState(() => {
     try {
       const saved = lsGet('beete', profileId);
@@ -1565,6 +1565,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     return window.matchMedia('(prefers-color-scheme: dark)').matches;
   });
   const [settingsOffen, setSettingsOffen] = useState(false);
+  const [nameInput, setNameInput] = useState(profileName);
   const [undoStack, setUndoStack] = useState([]);
   const [editingLabel, setEditingLabel] = useState(null);
   const [editingLabelVal, setEditingLabelVal] = useState('');
@@ -1730,6 +1731,61 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
       if (data[k] !== undefined && (typeof data[k] !== 'object' || Array.isArray(data[k]))) return false;
     }
     return true;
+  }
+
+  function handlePrintBeete() {
+    const printWindow = window.open('', '_blank', 'width=900,height=700');
+    const isDark = document.documentElement.classList.contains('dark');
+    const rows = sorted.map(beet => {
+      const pflanzen = (beet.pflanzen || []).map(p => {
+        const n = pflanzeName(p);
+        const info = findPflanze(n);
+        return `${info?.icon || ''}${n}`;
+      }).join(', ');
+      const ernte = beet.erntbarIm?.join(', ') || '–';
+      const notiz = beetNotizen[beet.beet] || '';
+      return `<tr>
+        <td>${beet.beet}</td>
+        <td>${beet.label || `Beet ${beet.beet}`}</td>
+        <td>${pflanzen || '–'}</td>
+        <td>${format(parseISO(beet.gepflanzt), 'dd.MM.yyyy')}</td>
+        <td>${format(parseISO(beet.faellig), 'dd.MM.yyyy')}</td>
+        <td>${ernte}</td>
+        <td class="notiz">${notiz}</td>
+      </tr>`;
+    }).join('');
+    printWindow.document.write(`<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<title>Anbauplanung ${profileName} · ${format(new Date(), 'yyyy')}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: system-ui, sans-serif; font-size: 12px; color: #111; padding: 24px 32px; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .meta { font-size: 11px; color: #666; margin-bottom: 20px; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #16a34a; color: #fff; text-align: left; padding: 7px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+  tr:nth-child(even) td { background: #f9fafb; }
+  .notiz { font-style: italic; color: #555; font-size: 11px; max-width: 160px; }
+  @media print { body { padding: 0; } }
+</style>
+</head>
+<body>
+<h1>🌱 Anbauplanung ${profileName}</h1>
+<div class="meta">Erstellt am ${format(new Date(), 'dd.MM.yyyy')} · ${sorted.length} Beete</div>
+<table>
+  <thead><tr>
+    <th>#</th><th>Name</th><th>Pflanzen</th><th>Gepflanzt</th><th>Fällig</th><th>Ernte</th><th>Notiz</th>
+  </tr></thead>
+  <tbody>${rows}</tbody>
+</table>
+</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 400);
   }
 
   function handleExport() {
@@ -1993,12 +2049,22 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
             </button>
           </div>
 
+          {profileId === 'mustergarten' && (
+            <button
+              onClick={() => setPdfOffen(true)}
+              className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-colors"
+              title="Anbauplanung PDF öffnen"
+            >
+              📄 PDF
+            </button>
+          )}
+
           <button
-            onClick={() => setPdfOffen(true)}
+            onClick={handlePrintBeete}
             className="text-xs text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-300 flex items-center gap-1 px-2 py-1 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow-sm transition-colors"
-            title="Anbauplanung PDF öffnen"
+            title="Beete als PDF drucken / exportieren"
           >
-            📄 PDF
+            🖨 Drucken
           </button>
 
           <button
@@ -2176,6 +2242,28 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                 ))}
               </div>
             </div>
+            {/* Profil-Name */}
+            {onRenameProfile && (
+              <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
+                <div className="text-xs font-medium text-gray-600 dark:text-gray-300 mb-2">Profil-Name</div>
+                <div className="flex gap-2">
+                  <input
+                    value={nameInput}
+                    onChange={e => setNameInput(e.target.value)}
+                    onKeyDown={e => { if (e.key === 'Enter') { onRenameProfile(nameInput); setSettingsOffen(false); } }}
+                    className="flex-1 text-sm px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 focus:outline-none focus:ring-1 focus:ring-green-400"
+                    placeholder="Dein Name"
+                  />
+                  <button
+                    onClick={() => { onRenameProfile(nameInput); setSettingsOffen(false); }}
+                    disabled={!nameInput.trim() || nameInput.trim() === profileName}
+                    className="text-xs px-3 py-1.5 rounded-lg bg-green-600 hover:bg-green-700 text-white transition-colors disabled:opacity-40"
+                  >
+                    Speichern
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}

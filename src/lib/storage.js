@@ -113,3 +113,39 @@ export function copyProfileData(fromId, toId) {
     if (val !== null) localStorage.setItem(profileKey(key, toId), val);
   }
 }
+
+/**
+ * One-time migration: renames the 'waschtl' profile to 'mustergarten'.
+ * Copies all *_waschtl keys to *_mustergarten, updates netlify_profile_map,
+ * and updates the profiles array. Safe to call repeatedly (idempotent).
+ */
+export function migrateWaschtlToMustergarten() {
+  const hasOld = localStorage.getItem(profileKey('beete', 'waschtl')) !== null;
+  const hasNew = localStorage.getItem(profileKey('beete', 'mustergarten')) !== null;
+  if (!hasOld || hasNew) return; // nothing to migrate or already done
+
+  // Copy all user keys
+  copyProfileData('waschtl', 'mustergarten');
+
+  // Update netlify_profile_map
+  const map = getProfileMapping();
+  for (const [uid, pid] of Object.entries(map)) {
+    if (pid === 'waschtl') map[uid] = 'mustergarten';
+  }
+  localStorage.setItem('netlify_profile_map', JSON.stringify(map));
+
+  // Update profiles array
+  const profiles = loadProfiles();
+  const updated = profiles.map(p =>
+    p.id === 'waschtl' ? { ...p, id: 'mustergarten' } : p
+  );
+  if (!updated.find(p => p.id === 'mustergarten')) {
+    updated.push({ id: 'mustergarten', name: 'Mustergarten', color: 'green' });
+  }
+  saveProfiles(updated);
+
+  // Clean up old keys
+  for (const key of USER_KEYS) {
+    localStorage.removeItem(`${key}_waschtl`);
+  }
+}

@@ -6,6 +6,7 @@ import App from './App.jsx';
 import { SignInPage } from './components/ui/sign-in.tsx';
 import {
   migrateLegacyData,
+  migrateWaschtlToMustergarten,
   profileKey,
   getProfileMapping,
   setProfileMapping,
@@ -16,8 +17,14 @@ import {
 
 const auth = new GoTrue({ APIUrl: '/.netlify/identity', setCookie: false });
 
-function initWaschtl() {
-  migrateLegacyData('waschtl');
+function initMustergarten() {
+  migrateWaschtlToMustergarten();
+  migrateLegacyData('mustergarten');
+  // Ensure Mustergarten entry exists in profiles array
+  const profiles = loadProfiles();
+  if (!profiles.find(p => p.id === 'mustergarten')) {
+    saveProfiles([...profiles, { id: 'mustergarten', name: 'Mustergarten', color: 'green' }]);
+  }
 }
 
 function parseHash(hash) {
@@ -28,55 +35,77 @@ function parseHash(hash) {
 function resolveProfile(user) {
   const map = getProfileMapping();
   if (map[user.id]) return map[user.id];
-  // Auto-detect original waschtl user by presence of their data
-  if (localStorage.getItem(profileKey('beete', 'waschtl'))) {
-    setProfileMapping(user.id, 'waschtl');
-    return 'waschtl';
+  // Auto-detect admin user by presence of mustergarten data (post-migration)
+  if (localStorage.getItem(profileKey('beete', 'mustergarten'))) {
+    setProfileMapping(user.id, 'mustergarten');
+    return 'mustergarten';
   }
   return null; // new user → needs onboarding
 }
 
 function deriveProfileName(profileId, user) {
-  if (profileId === 'waschtl') return 'Waschtl';
+  // Prefer stored name from profiles array
+  const stored = loadProfiles().find(p => p.id === profileId);
+  if (stored?.name) return stored.name;
+  // Fallback: derive from email prefix
   const local = user.email.split('@')[0];
   return local.charAt(0).toUpperCase() + local.slice(1);
 }
 
 function OnboardingScreen({ user, onComplete }) {
+  const emailPrefix = user.email.split('@')[0];
+  const defaultName = emailPrefix.charAt(0).toUpperCase() + emailPrefix.slice(1);
+  const [name, setName] = useState(defaultName);
   const [loading, setLoading] = useState(false);
 
   function handleChoice(useTemplate) {
+    const trimmed = name.trim() || defaultName;
     setLoading(true);
     const newId = user.id;
-    const name = deriveProfileName(newId, user);
-    if (useTemplate) copyProfileData('waschtl', newId);
+    if (useTemplate) copyProfileData('mustergarten', newId);
     setProfileMapping(user.id, newId);
     const existing = loadProfiles();
     if (!existing.find(p => p.id === newId)) {
-      saveProfiles([...existing, { id: newId, name, color: 'blue' }]);
+      saveProfiles([...existing, { id: newId, name: trimmed, color: 'blue' }]);
     }
-    onComplete(newId, name);
+    onComplete(newId, trimmed);
   }
 
   return (
     <div className="h-[100dvh] flex items-center justify-center font-geist p-8">
-      <div className="w-full max-w-md flex flex-col gap-6">
+      <div className="w-full max-w-md flex flex-col gap-5">
         <h1 className="text-4xl font-semibold tracking-tight">Willkommen! 🌱</h1>
-        <p className="text-muted-foreground">Wie möchtest du mit deinem Garten starten?</p>
-        <button
-          disabled={loading}
-          onClick={() => handleChoice(true)}
-          className="w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? '…' : 'Vorlage übernehmen'}
-        </button>
-        <button
-          disabled={loading}
-          onClick={() => handleChoice(false)}
-          className="w-full rounded-2xl border border-border py-4 font-medium hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {loading ? '…' : 'Leeren Garten anlegen'}
-        </button>
+        <p className="text-muted-foreground text-sm">Richte deinen persönlichen Garten ein.</p>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium">Dein Name</label>
+          <input
+            value={name}
+            onChange={e => setName(e.target.value)}
+            placeholder="z. B. Maria"
+            className="rounded-xl border border-border bg-background px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+
+        <div className="flex flex-col gap-3 pt-2">
+          <button
+            disabled={loading || !name.trim()}
+            onClick={() => handleChoice(true)}
+            className="w-full rounded-2xl bg-primary py-4 font-medium text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '…' : '🥬 Mustergarten übernehmen'}
+          </button>
+          <button
+            disabled={loading || !name.trim()}
+            onClick={() => handleChoice(false)}
+            className="w-full rounded-2xl border border-border py-4 font-medium hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {loading ? '…' : '🌱 Leeren Garten anlegen'}
+          </button>
+        </div>
+        <p className="text-xs text-muted-foreground text-center">
+          Beim Mustergarten werden alle Beete als Vorlage übernommen.
+        </p>
       </div>
     </div>
   );
@@ -104,7 +133,7 @@ function Root() {
   }
 
   useEffect(() => {
-    initWaschtl();
+    initMustergarten();
     // Apply saved display preferences before first paint
     const dm = localStorage.getItem('darkMode');
     if (dm === 'true') document.documentElement.classList.add('dark');
@@ -241,6 +270,19 @@ function Root() {
     }
   }
 
+  function handleRenameProfile(newName) {
+    const trimmed = newName.trim();
+    if (!trimmed || !profileId) return;
+    const updated = loadProfiles().map(p =>
+      p.id === profileId ? { ...p, name: trimmed } : p
+    );
+    if (!updated.find(p => p.id === profileId)) {
+      updated.push({ id: profileId, name: trimmed, color: 'green' });
+    }
+    saveProfiles(updated);
+    setProfileName(trimmed);
+  }
+
   async function handleSignOut() {
     try {
       await user.logout();
@@ -293,6 +335,7 @@ function Root() {
       profileName={profileName}
       profileColor="green"
       onSwitchProfile={handleSignOut}
+      onRenameProfile={handleRenameProfile}
     />
   );
 }
