@@ -2,6 +2,14 @@
   command = "npm run build"
   publish = "dist"
 
+# Nur main deployt live – develop kriegt eine eigene Staging-URL
+[context.production]
+  branch = "main"
+
+[context.develop]
+  command = "npm run build"
+  publish = "dist"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
