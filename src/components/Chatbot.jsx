@@ -256,7 +256,7 @@ function detectAction(text, beete, selectedDate, onGiessen, onUpdateBeet, onDuen
 }
 
 // ── Chatbot Component ─────────────────────────────────────────────────────────
-export default function Chatbot({ beete, selectedDate, onGiessen, onDuengen, onUpdateBeet }) {
+export default function Chatbot({ beete, selectedDate, onGiessen, onDuengen, onUpdateBeet, isTab = false }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState([
     {
@@ -298,77 +298,81 @@ export default function Chatbot({ beete, selectedDate, onGiessen, onDuengen, onU
     'Ich habe gegossen',
   ];
 
+  const panel = (
+    <div className={isTab
+      ? 'flex flex-col h-full bg-white dark:bg-gray-900'
+      : 'fixed bottom-24 right-4 z-50 w-80 sm:w-96 flex flex-col rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700'
+    } style={isTab ? {} : { maxHeight: '520px' }}>
+      {/* Header */}
+      <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
+        <div>
+          <div className="font-bold text-sm">🌱 Garten-Assistent</div>
+          <div className="text-xs opacity-80">Pflanzen · Nachbarn · Tipps</div>
+        </div>
+        {!isTab && <button onClick={() => setOpen(false)} className="text-white opacity-70 hover:opacity-100 text-lg">✕</button>}
+      </div>
+
+      {/* Quick actions */}
+      <div className="flex gap-1 flex-wrap px-3 py-2 bg-green-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
+        {QUICK.map(q => (
+          <button key={q} onClick={() => { setInput(q); }}
+            className="text-xs bg-white dark:bg-gray-700 border border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 rounded-full px-2 py-0.5 hover:bg-green-100 dark:hover:bg-gray-600 transition-colors">
+            {q}
+          </button>
+        ))}
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-white dark:bg-gray-900" style={{ minHeight: 0 }}>
+        {messages.map((msg, i) => (
+          <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+            <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
+              msg.role === 'user'
+                ? 'bg-green-600 text-white rounded-br-sm'
+                : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm'
+            }`}>
+              {renderAntwort(msg.text)}
+            </div>
+          </div>
+        ))}
+        <div ref={bottomRef} />
+      </div>
+
+      {/* Input */}
+      <div className="flex gap-2 px-3 py-2 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
+        <input
+          className="flex-1 border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-400"
+          placeholder="Frag deinen Garten-Assistenten…"
+          value={input}
+          onChange={e => setInput(e.target.value)}
+          onKeyDown={handleKey}
+        />
+        <button
+          onClick={send}
+          className="bg-green-600 hover:bg-green-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm transition-colors"
+          aria-label="Senden"
+        >
+          ➤
+        </button>
+      </div>
+    </div>
+  );
+
+  if (isTab) return panel;
+
   return (
     <>
-      {/* Floating Button */}
+      {/* Floating Button — positioned above bottom nav */}
       <button
         onClick={() => setOpen(o => !o)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full bg-green-600 hover:bg-green-700 text-white text-2xl shadow-lg flex items-center justify-center transition-transform hover:scale-110"
+        className="fixed bottom-20 right-4 z-50 w-12 h-12 rounded-full bg-green-600 hover:bg-green-700 text-white text-xl shadow-lg flex items-center justify-center transition-transform hover:scale-110"
         aria-label="Garten-Chatbot öffnen"
         title="Garten-Assistent"
       >
         {open ? '✕' : '🌱'}
       </button>
 
-      {/* Panel */}
-      {open && (
-        <div className="fixed bottom-24 right-6 z-50 w-80 sm:w-96 flex flex-col rounded-2xl shadow-2xl overflow-hidden border border-gray-200 dark:border-gray-700"
-          style={{ maxHeight: '520px' }}>
-
-          {/* Header */}
-          <div className="bg-green-600 text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
-            <div>
-              <div className="font-bold text-sm">🌱 Garten-Assistent</div>
-              <div className="text-xs opacity-80">Pflanzen · Nachbarn · Tipps</div>
-            </div>
-            <button onClick={() => setOpen(false)} className="text-white opacity-70 hover:opacity-100 text-lg">✕</button>
-          </div>
-
-          {/* Quick actions */}
-          <div className="flex gap-1 flex-wrap px-3 py-2 bg-green-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-shrink-0">
-            {QUICK.map(q => (
-              <button key={q} onClick={() => { setInput(q); }}
-                className="text-xs bg-white dark:bg-gray-700 border border-green-300 dark:border-green-700 text-green-800 dark:text-green-200 rounded-full px-2 py-0.5 hover:bg-green-100 dark:hover:bg-gray-600 transition-colors">
-                {q}
-              </button>
-            ))}
-          </div>
-
-          {/* Messages */}
-          <div className="flex-1 overflow-y-auto px-3 py-3 space-y-3 bg-white dark:bg-gray-900" style={{ minHeight: 0 }}>
-            {messages.map((msg, i) => (
-              <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-                <div className={`max-w-[85%] rounded-2xl px-3 py-2 text-sm ${
-                  msg.role === 'user'
-                    ? 'bg-green-600 text-white rounded-br-sm'
-                    : 'bg-gray-100 dark:bg-gray-800 text-gray-900 dark:text-gray-100 rounded-bl-sm'
-                }`}>
-                  {renderAntwort(msg.text)}
-                </div>
-              </div>
-            ))}
-            <div ref={bottomRef} />
-          </div>
-
-          {/* Input */}
-          <div className="flex gap-2 px-3 py-2 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 flex-shrink-0">
-            <input
-              className="flex-1 border border-gray-300 dark:border-gray-600 rounded-full px-3 py-1.5 text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-green-400"
-              placeholder="Frag deinen Garten-Assistenten…"
-              value={input}
-              onChange={e => setInput(e.target.value)}
-              onKeyDown={handleKey}
-            />
-            <button
-              onClick={send}
-              className="bg-green-600 hover:bg-green-700 text-white rounded-full w-8 h-8 flex items-center justify-center text-sm transition-colors"
-              aria-label="Senden"
-            >
-              ➤
-            </button>
-          </div>
-        </div>
-      )}
+      {open && panel}
     </>
   );
 }

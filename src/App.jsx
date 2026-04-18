@@ -3,6 +3,7 @@ import { gardenData as initialGardenData, GARDEN_DATA_VERSION } from './data/gar
 import { pflanzDatenbank, findPflanze, getNeighborRelation, computeErntbarIm } from './data/plantDatabase';
 import { format, parseISO, differenceInDays, addMonths } from 'date-fns';
 const DE_MONATE = ['Jan','Feb','Mär','Apr','Mai','Jun','Jul','Aug','Sep','Okt','Nov','Dez'];
+const DE_MONATE_LANG = ['Januar','Februar','März','April','Mai','Juni','Juli','August','September','Oktober','November','Dezember'];
 function deMonat(date) { return `${DE_MONATE[date.getMonth()]} ${date.getFullYear()}`; }
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -1338,6 +1339,173 @@ function AddBeetDialog({ onAdd, selectedDate }) {
   );
 }
 
+function BottomNav({ activeTab, onTabChange }) {
+  const tabs = [
+    { id: 'heute', icon: '🏠', label: 'Heute' },
+    { id: 'beete', icon: '🥬', label: 'Beete' },
+    { id: 'kalender', icon: '📅', label: 'Kalender' },
+    { id: 'chatbot', icon: '🤖', label: 'Assistent' },
+  ];
+  return (
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+      <div className="flex">
+        {tabs.map(t => (
+          <button
+            key={t.id}
+            onClick={() => onTabChange(t.id)}
+            className={`flex-1 flex flex-col items-center py-2 gap-0.5 text-xs transition-colors ${
+              activeTab === t.id
+                ? 'text-green-600 dark:text-green-400 font-semibold'
+                : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
+            }`}
+          >
+            <span className={`text-xl leading-none transition-transform duration-150 ${activeTab === t.id ? 'scale-110' : ''}`}>{t.icon}</span>
+            <span>{t.label}</span>
+          </button>
+        ))}
+      </div>
+    </nav>
+  );
+}
+
+function KalenderTab({ beete, ernteLog, selectedDate }) {
+  const monate = [0, 1, 2].map(offset => {
+    const d = new Date(selectedDate);
+    d.setMonth(d.getMonth() + offset);
+    d.setDate(1);
+    return d;
+  });
+
+  const ernteByMonat = {};
+  for (const e of ernteLog) {
+    const m = e.datum.slice(0, 7);
+    if (!ernteByMonat[m]) ernteByMonat[m] = [];
+    ernteByMonat[m].push(e);
+  }
+  const sortierteMonate = Object.keys(ernteByMonat).sort().reverse();
+
+  return (
+    <div className="max-w-7xl mx-auto px-4 pb-10 space-y-6">
+      <section>
+        <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-widest">📅 Nächste 3 Monate</h2>
+        <div className="space-y-3">
+          {monate.map(monat => {
+            const monatNum = monat.getMonth() + 1;
+            const monatStr = format(monat, 'yyyy-MM');
+            const pflanzbar = pflanzDatenbank.filter(p => p.pflanzMonate?.includes(monatNum));
+            const ernteBeete = beete.filter(b => b.erntbarIm?.includes(monatStr));
+            return (
+              <div key={monatStr} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
+                <div className="font-semibold text-base text-gray-800 dark:text-gray-100 mb-3">
+                  {DE_MONATE_LANG[monat.getMonth()]} {monat.getFullYear()}
+                </div>
+                {ernteBeete.length > 0 && (
+                  <div className="mb-3">
+                    <div className="text-xs font-medium text-amber-700 dark:text-amber-400 mb-1.5">🌾 Ernte dieser Beete</div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {ernteBeete.map(b => (
+                        <span key={b.beet} className="text-xs px-2.5 py-1 rounded-full bg-amber-100 dark:bg-amber-900/40 text-amber-800 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                          Beet {b.beet}{b.label ? ` · ${b.label}` : ''}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <div className="text-xs font-medium text-green-700 dark:text-green-400 mb-1.5">🌱 Jetzt pflanzen</div>
+                  {pflanzbar.length === 0 ? (
+                    <span className="text-xs text-gray-400 dark:text-gray-500">Keine Pflanzempfehlungen für diesen Monat.</span>
+                  ) : (
+                    <div className="flex flex-wrap gap-1">
+                      {pflanzbar.slice(0, 14).map(p => (
+                        <span key={p.name} className="text-xs px-2 py-0.5 rounded-full bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-200 border border-green-200 dark:border-green-800">
+                          {p.icon} {p.name}
+                        </span>
+                      ))}
+                      {pflanzbar.length > 14 && (
+                        <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400">
+                          +{pflanzbar.length - 14}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </section>
+
+      <section>
+        <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-3 uppercase tracking-widest">🌾 Ernte-Tagebuch</h2>
+        {sortierteMonate.length === 0 ? (
+          <div className="text-sm text-gray-500 dark:text-gray-400 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 px-4 py-10 text-center">
+            Noch keine Ernte eingetragen.
+            <span className="block text-xs mt-1 text-gray-400 dark:text-gray-500">Markiere geerntete Pflanzen im Beete-Tab.</span>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {sortierteMonate.map(monatStr => {
+              const [year, mon] = monatStr.split('-');
+              const eintraege = ernteByMonat[monatStr];
+              const gesamtMenge = {};
+              for (const e of eintraege) {
+                if (e.menge != null) {
+                  const k = `${e.pflanze}|||${e.einheit || 'Stück'}`;
+                  gesamtMenge[k] = (gesamtMenge[k] || 0) + Number(e.menge);
+                }
+              }
+              return (
+                <div key={monatStr} className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 overflow-hidden">
+                  <div className="px-4 py-2.5 bg-amber-50 dark:bg-amber-900/20 border-b border-amber-200 dark:border-amber-700 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                      {DE_MONATE_LANG[parseInt(mon) - 1]} {year}
+                    </span>
+                    <span className="text-xs text-amber-600 dark:text-amber-500">{eintraege.length} {eintraege.length === 1 ? 'Eintrag' : 'Einträge'}</span>
+                  </div>
+                  <div className="divide-y divide-gray-100 dark:divide-gray-700/50">
+                    {eintraege.map((e, i) => (
+                      <div key={i} className="flex items-center justify-between px-4 py-2.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-xs text-gray-400 dark:text-gray-500 font-mono tabular-nums">
+                            {e.datum.slice(8)}.{e.datum.slice(5, 7)}.
+                          </span>
+                          <span className="text-sm text-gray-800 dark:text-gray-200">
+                            {findPflanze(e.pflanze)?.icon} {e.pflanze}
+                          </span>
+                          <span className="text-xs text-gray-400 dark:text-gray-500">· Beet {e.beetId}</span>
+                        </div>
+                        {e.menge != null && (
+                          <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-700 shrink-0">
+                            {e.menge} {e.einheit || 'Stück'}
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {Object.keys(gesamtMenge).length > 0 && (
+                    <div className="px-4 py-2 bg-gray-50 dark:bg-gray-800/50 border-t border-gray-100 dark:border-gray-700 flex flex-wrap gap-x-4 gap-y-1 items-center">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 font-medium">Gesamt:</span>
+                      {Object.entries(gesamtMenge).map(([key, total]) => {
+                        const [pflanze, einheit] = key.split('|||');
+                        return (
+                          <span key={key} className="text-xs text-gray-700 dark:text-gray-300">
+                            {pflanze}: <strong>{total} {einheit}</strong>
+                          </span>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </section>
+    </div>
+  );
+}
+
 function App({ profileId, profileName, profileColor, onSwitchProfile }) {
   const [beete, setBeete] = useState(() => {
     try {
@@ -1409,6 +1577,8 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
   const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'md');
   const [pflanzModus, setPflanzModus] = useState(() => localStorage.getItem('pflanzModus') || 'anordnen');
   const [editPflanze, setEditPflanze] = useState(null);
+  const [activeTab, setActiveTab] = useState('heute');
+  const [ernteEingabe, setErnteEingabe] = useState({});
   // Beete persistent speichern
   useEffect(() => {
     try {
@@ -1743,13 +1913,16 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
     setBeetNotizen(prev => ({ ...prev, [beetId]: text }));
   }
 
-  function handleErnte(beetId, pflanze) {
+  function handleErnte(beetId, pflanze, menge = null, einheit = 'Stück') {
     const dateStr = format(selectedDate, 'yyyy-MM-dd');
+    const key = `${beetId}_${pflanze}`;
     setErnteLog(prev => {
       const exists = prev.some(e => e.beetId === beetId && e.pflanze === pflanze && e.datum === dateStr);
       if (exists) return prev.filter(e => !(e.beetId === beetId && e.pflanze === pflanze && e.datum === dateStr));
-      return [{ beetId, pflanze, datum: dateStr }, ...prev];
+      const mengeNum = menge !== null && menge !== '' ? Number(menge) : null;
+      return [{ beetId, pflanze, datum: dateStr, menge: mengeNum, einheit: mengeNum != null ? einheit : undefined }, ...prev];
     });
+    setErnteEingabe(prev => { const n = { ...prev }; delete n[key]; return n; });
   }
 
   function handleOrtsWahl(stadt) {
@@ -1772,7 +1945,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 transition-colors">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50 dark:from-gray-900 dark:to-gray-800 text-gray-900 dark:text-gray-100 transition-colors pb-16">
 
       {/* Kompakter Header + Toolbar in einer Zeile */}
       <div className="max-w-7xl mx-auto px-4 pt-5 pb-3 flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3">
@@ -2007,19 +2180,32 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
         </div>
       )}
 
-      <WetterStreifen
-        wetterDaten={wetterDaten}
-        wetterLaedt={wetterLaedt}
-        wetterFehler={wetterFehler}
-        standort={standort}
-        selectedDate={selectedDate}
-        onRetry={retryWetter}
-        onOrtsWahl={handleOrtsWahl}
-      />
+      {activeTab === 'heute' && (
+        <>
+          <WetterStreifen
+            wetterDaten={wetterDaten}
+            wetterLaedt={wetterLaedt}
+            wetterFehler={wetterFehler}
+            standort={standort}
+            selectedDate={selectedDate}
+            onRetry={retryWetter}
+            onOrtsWahl={handleOrtsWahl}
+          />
+          <TagesAufgaben beete={beete} selectedDate={selectedDate} giessenLog={giessenLog} duengenLog={duengenLog} wetterDaten={wetterDaten} onGiessenAlle={handleAlleGiessen} onDuengen={handleDuengen} />
+        </>
+      )}
 
-      <TagesAufgaben beete={beete} selectedDate={selectedDate} giessenLog={giessenLog} duengenLog={duengenLog} wetterDaten={wetterDaten} onGiessenAlle={handleAlleGiessen} onDuengen={handleDuengen} />
+      {activeTab === 'kalender' && (
+        <KalenderTab beete={beete} ernteLog={ernteLog} selectedDate={selectedDate} />
+      )}
 
-      <main className="max-w-7xl mx-auto px-4 pb-10">
+      {activeTab === 'chatbot' && (
+        <div className="fixed inset-x-0 z-30 flex flex-col" style={{ top: 64, bottom: 56 }}>
+          <Chatbot beete={beete} selectedDate={selectedDate} onGiessen={handleGiessen} onDuengen={handleDuengen} onUpdateBeet={(beetId, pflanzen) => updateBeeetPflanzen(beetId, pflanzen, undefined)} isTab />
+        </div>
+      )}
+
+      {activeTab === 'beete' && <main className="max-w-7xl mx-auto px-4 pb-10">
         <div className="flex items-center gap-2 mb-4 flex-wrap">
           <button
             onClick={() => setBeeteZugeklappt(z => !z)}
@@ -2132,7 +2318,12 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                               {beet.label || `Beet ${beet.beet}`}
                             </button>
                           )}
-                          <div className="mt-0.5">{getStatusBadge(beet, selectedDate)}</div>
+                          <div className="mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            {getStatusBadge(beet, selectedDate)}
+                            {beetNotizen[beet.beet] && (
+                              <span className="text-amber-500 text-xs" title={beetNotizen[beet.beet]}>📝</span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       {/* Datum-Zeile */}
@@ -2210,26 +2401,74 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                             });
                             if (erntereif.length === 0) return null;
                             return (
-                              <div className="space-y-1">
-                                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">Ernte markieren:</div>
-                                <div className="flex flex-wrap gap-1.5">
+                              <div className="space-y-1.5">
+                                <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">🌾 Ernte markieren:</div>
+                                <div className="flex flex-col gap-2">
                                   {erntereif.map(p => {
                                     const name = pflanzeName(p);
                                     const info = findPflanze(name);
                                     const istGeerntet = ernteLog.some(e => e.beetId === beet.beet && e.pflanze === name && e.datum === heuteDatum);
+                                    const eintrag = ernteLog.find(e => e.beetId === beet.beet && e.pflanze === name && e.datum === heuteDatum);
+                                    const key = `${beet.beet}_${name}`;
+                                    const eingabe = ernteEingabe[key] || { menge: '', einheit: 'Stück' };
+                                    const zeigFormular = !istGeerntet && ernteEingabe[key] !== undefined;
                                     return (
-                                      <button
-                                        key={name}
-                                        onClick={e => { e.stopPropagation(); handleErnte(beet.beet, name); }}
-                                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-sm border transition-colors ${
-                                          istGeerntet
-                                            ? 'bg-teal-100 dark:bg-teal-900/50 border-teal-400 text-teal-700 dark:text-teal-300'
-                                            : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-teal-400 hover:text-teal-700'
-                                        }`}
-                                        title={istGeerntet ? 'Ernte rückgängig' : 'Als geerntet markieren'}
-                                      >
-                                        {info?.icon || '🌾'} {name} {istGeerntet ? '✓' : '+'}
-                                      </button>
+                                      <div key={name} className="flex flex-col gap-1">
+                                        {istGeerntet ? (
+                                          <div className="flex items-center gap-2">
+                                            <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border bg-teal-100 dark:bg-teal-900/50 border-teal-400 text-teal-700 dark:text-teal-300">
+                                              {info?.icon || '🌾'} {name} ✓
+                                              {eintrag?.menge != null && <span className="font-semibold ml-1">{eintrag.menge} {eintrag.einheit}</span>}
+                                            </span>
+                                            <button
+                                              onClick={e => { e.stopPropagation(); handleErnte(beet.beet, name); }}
+                                              className="text-xs text-gray-400 hover:text-red-500 transition-colors"
+                                              title="Rückgängig"
+                                            >↩</button>
+                                          </div>
+                                        ) : zeigFormular ? (
+                                          <div className="flex items-center gap-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
+                                            <span className="text-xs text-gray-600 dark:text-gray-300">{info?.icon} {name}</span>
+                                            <input
+                                              type="number"
+                                              min="0"
+                                              step="0.1"
+                                              placeholder="Menge"
+                                              value={eingabe.menge}
+                                              onChange={e => setErnteEingabe(prev => ({ ...prev, [key]: { ...eingabe, menge: e.target.value } }))}
+                                              onClick={e => e.stopPropagation()}
+                                              className="w-20 text-xs px-2 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none focus:ring-1 focus:ring-teal-400"
+                                            />
+                                            <select
+                                              value={eingabe.einheit}
+                                              onChange={e => setErnteEingabe(prev => ({ ...prev, [key]: { ...eingabe, einheit: e.target.value } }))}
+                                              onClick={e => e.stopPropagation()}
+                                              className="text-xs px-1.5 py-1 rounded border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 focus:outline-none"
+                                            >
+                                              <option>Stück</option>
+                                              <option>kg</option>
+                                              <option>Bund</option>
+                                              <option>g</option>
+                                            </select>
+                                            <button
+                                              onClick={e => { e.stopPropagation(); handleErnte(beet.beet, name, eingabe.menge, eingabe.einheit); }}
+                                              className="text-xs px-2 py-1 rounded bg-teal-600 hover:bg-teal-700 text-white transition-colors"
+                                            >✓ OK</button>
+                                            <button
+                                              onClick={e => { e.stopPropagation(); setErnteEingabe(prev => { const n = { ...prev }; delete n[key]; return n; }); }}
+                                              className="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                                            >✕</button>
+                                          </div>
+                                        ) : (
+                                          <button
+                                            onClick={e => { e.stopPropagation(); setErnteEingabe(prev => ({ ...prev, [key]: { menge: '', einheit: 'Stück' } })); }}
+                                            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs border bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-600 dark:text-gray-300 hover:border-teal-400 hover:text-teal-700 dark:hover:text-teal-400 transition-colors w-fit"
+                                            title="Ernte eintragen"
+                                          >
+                                            {info?.icon || '🌾'} {name} + Ernte
+                                          </button>
+                                        )}
+                                      </div>
                                     );
                                   })}
                                 </div>
@@ -2245,14 +2484,17 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
                             </div>
                           )}
                           {/* Notiz */}
-                          <textarea
-                            value={beetNotizen[beet.beet] || ''}
-                            onChange={e => { e.stopPropagation(); setNotiz(beet.beet, e.target.value); }}
-                            onClick={e => e.stopPropagation()}
-                            placeholder="Notiz zu diesem Beet…"
-                            rows={2}
-                            className="w-full text-sm px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-1 focus:ring-green-400"
-                          />
+                          <div className="space-y-1">
+                            <div className="text-xs font-semibold text-gray-500 dark:text-gray-400">📝 Notiz</div>
+                            <textarea
+                              value={beetNotizen[beet.beet] || ''}
+                              onChange={e => { e.stopPropagation(); setNotiz(beet.beet, e.target.value); }}
+                              onClick={e => e.stopPropagation()}
+                              placeholder="Notiz zu diesem Beet…"
+                              rows={2}
+                              className="w-full text-sm px-2.5 py-1.5 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500 resize-none focus:outline-none focus:ring-1 focus:ring-green-400"
+                            />
+                          </div>
                         </div>
                       )}
                     </CardHeader>
@@ -2410,13 +2652,17 @@ function App({ profileId, profileName, profileColor, onSwitchProfile }) {
           )}
         </div>
 
-      </main>
+      </main>}
 
-      <footer className="text-center py-10 text-xs text-gray-500 dark:text-gray-400">
+      <footer className="text-center py-6 text-xs text-gray-500 dark:text-gray-400">
         &copy; 2026 Saisongarten App
       </footer>
 
-      <Chatbot beete={beete} selectedDate={selectedDate} onGiessen={handleGiessen} onDuengen={handleDuengen} onUpdateBeet={(beetId, pflanzen) => updateBeeetPflanzen(beetId, pflanzen, undefined)} />
+      {activeTab !== 'chatbot' && (
+        <Chatbot beete={beete} selectedDate={selectedDate} onGiessen={handleGiessen} onDuengen={handleDuengen} onUpdateBeet={(beetId, pflanzen) => updateBeeetPflanzen(beetId, pflanzen, undefined)} />
+      )}
+
+      <BottomNav activeTab={activeTab} onTabChange={setActiveTab} />
 
       {/* PDF-Overlay */}
       {pdfOffen && (
