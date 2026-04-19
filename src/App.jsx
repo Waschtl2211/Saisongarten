@@ -1738,17 +1738,36 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
     const printWindow = window.open('', '_blank', 'width=900,height=700');
     const isDark = document.documentElement.classList.contains('dark');
     const rows = sorted.map(beet => {
-      const pflanzen = (beet.pflanzen || []).map(p => {
-        const n = pflanzeName(p);
-        const info = findPflanze(n);
-        return `${info?.icon || ''}${n}`;
-      }).join(', ');
+      let pflanzenHtml;
+      if (beet.reihen?.length > 0) {
+        const reihenItems = beet.reihen.map((r, i) => {
+          if (!r.kulturen?.length && !r.hinweis) return '';
+          const num = `<span class="reihe-nr">${i + 1}</span>`;
+          if (r.aussaat) {
+            return `<div class="reihe reihe-aussaat">${num}<span class="reihe-label">🌱 Aussaat</span> ${r.kulturen?.join(' · ') || ''}${r.hinweis ? ` <em>(${r.hinweis})</em>` : ''}</div>`;
+          }
+          if (r.abstand) {
+            return `<div class="reihe">${num}<span class="reihe-abstand">${r.abstand} cm</span> ${r.kulturen?.join(' · ') || ''}</div>`;
+          }
+          if (r.hinweis && !r.kulturen?.length) {
+            return `<div class="reihe reihe-hinweis">${num}<em>${r.hinweis}</em></div>`;
+          }
+          return `<div class="reihe">${num}${r.kulturen?.join(' · ') || ''}</div>`;
+        }).filter(Boolean).join('');
+        pflanzenHtml = `<div class="reihen">${reihenItems}</div>`;
+      } else {
+        pflanzenHtml = (beet.pflanzen || []).map(p => {
+          const n = pflanzeName(p);
+          const info = findPflanze(n);
+          return `${info?.icon || ''}${n}`;
+        }).join(', ') || '–';
+      }
       const ernte = beet.erntbarIm?.join(', ') || '–';
       const notiz = beetNotizen[beet.beet] || '';
       return `<tr>
         <td>${beet.beet}</td>
         <td>${beet.label || `Beet ${beet.beet}`}</td>
-        <td>${pflanzen || '–'}</td>
+        <td>${pflanzenHtml}</td>
         <td>${format(parseISO(beet.gepflanzt), 'dd.MM.yyyy')}</td>
         <td>${format(parseISO(beet.faellig), 'dd.MM.yyyy')}</td>
         <td>${ernte}</td>
@@ -1770,6 +1789,15 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
   td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
   tr:nth-child(even) td { background: #f9fafb; }
   .notiz { font-style: italic; color: #555; font-size: 11px; max-width: 160px; }
+  .reihen { display: flex; flex-direction: column; gap: 3px; }
+  .reihe { display: flex; align-items: baseline; gap: 5px; font-size: 11px; line-height: 1.4; padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
+  .reihe:last-child { border-bottom: none; }
+  .reihe-nr { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background: #16a34a; color: #fff; border-radius: 50%; font-size: 9px; font-weight: 700; flex-shrink: 0; }
+  .reihe-aussaat .reihe-nr { background: #d97706; }
+  .reihe-hinweis .reihe-nr { background: #9ca3af; }
+  .reihe-label { font-weight: 600; color: #92400e; }
+  .reihe-abstand { font-weight: 600; color: #1d4ed8; font-size: 10px; }
+  .reihe-hinweis { color: #6b7280; }
   @media print { body { padding: 0; } }
 </style>
 </head>
