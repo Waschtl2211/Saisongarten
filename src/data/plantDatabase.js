@@ -298,7 +298,7 @@ export const pflanzDatenbank = [
     hinweis: 'Mehrere Sorten für gestaffelte Ernte',
     giessIntervall: 3,
     giessIntensität: 'mittel',
-    gut: ['Gurken', 'Erbsen', 'Zwiebeln', 'Tomaten', 'Karotten'],
+    gut: ['Gurken', 'Erbsen', 'Zwiebeln', 'Karotten'],
     schlecht: ['Tomaten', 'Paprika', 'Brokkoli'],
     duenger: {
       typ: ['Kompost', 'Hornspäne'],
@@ -699,7 +699,7 @@ export const pflanzDatenbank = [
     giessIntervall: 3,
     giessIntensität: 'mittel',
     gut: ['Karotten', 'Spinat', 'Kopfsalat'],
-    schlecht: [],
+    schlecht: ['Brokkoli', 'Kohlrabi'],
     duenger: {
       typ: ['Kompost'],
       intervallWochen: null,
@@ -799,7 +799,7 @@ export const pflanzDatenbank = [
     giessIntervall: 4,
     giessIntensität: 'niedrig',
     gut: ['Kopfsalat', 'Spinat', 'Radieschen'],
-    schlecht: [],
+    schlecht: ['Brokkoli', 'Kohlrabi', 'Chinakohl'],
     duenger: {
       typ: ['Kompost'],
       intervallWochen: null,
@@ -1121,7 +1121,7 @@ export const pflanzDatenbank = [
   },
   {
     name: 'Pfefferminze',
-    aliases: ['pfefferminze', 'minze', 'mentha piperita', 'spearmint', 'krauseminze'],
+    aliases: ['pfefferminze', 'mentha piperita', 'spearmint', 'krauseminze', 'peppermint'],
     icon: '🌿',
     pflanzMonate: [4, 5],
     ernteanfangOffset: 2,
@@ -1341,7 +1341,7 @@ export const pflanzDatenbank = [
   },
   {
     name: 'Minze',
-    aliases: ['minze', 'pfefferminze', 'spearmint', 'pfeffermünze', 'mint'],
+    aliases: ['minze', 'pfeffermünze', 'spearmint', 'mint', 'frische minze'],
     icon: '🌿',
     pflanzMonate: [4, 5],
     ernteanfangOffset: 1,

@@ -2399,7 +2399,11 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
               const isFaellig = faelligTage >= 0 && faelligTage <= 14;
               const giessStatus = brauchtGiessen(beet, selectedDate, giessenLog, wetterDaten);
               const isExpanded = expandedBeet === beet.beet;
-              const pflanzenNamen = (beet.pflanzen || []).map(pflanzeName);
+              const reihenKulturen = beet.reihen?.flatMap(r => r.kulturen || []) || [];
+              const pflanzenNamen = [...new Set([
+                ...(beet.pflanzen || []).map(pflanzeName),
+                ...reihenKulturen,
+              ])];
               const hasKonflikt = pflanzenNamen.length > 1 && pflanzenNamen.some((a, i) => {
                 const infoA = findPflanze(a);
                 if (!infoA) return false;

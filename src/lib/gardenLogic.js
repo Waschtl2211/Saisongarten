@@ -40,7 +40,10 @@ export function berechneRegenCredits(vonDatum, bisDatum, wetterDaten) {
 }
 
 export function brauchtGiessen(beet, date, giessenLog, wetterDaten) {
-  if (!beet.pflanzen?.length) return { noetig: false };
+  const allePflanzen = beet.pflanzen?.length
+    ? beet.pflanzen
+    : (beet.reihen?.flatMap(r => r.kulturen || []) ?? []);
+  if (!allePflanzen.length) return { noetig: false };
   const dateCopy = new Date(date); dateCopy.setHours(0, 0, 0, 0);
   const gepflanzt = parseISO(beet.gepflanzt);
   gepflanzt.setHours(0, 0, 0, 0);
@@ -52,7 +55,7 @@ export function brauchtGiessen(beet, date, giessenLog, wetterDaten) {
     .sort((a, b) => b - a);
 
   const letzteGiessung = log[0] || null;
-  const basisIntervall = berechneGiessIntervall(beet.pflanzen);
+  const basisIntervall = berechneGiessIntervall(allePflanzen);
 
   if (!letzteGiessung) {
     const rawDays = differenceInDays(dateCopy, gepflanzt);
@@ -98,10 +101,13 @@ export function brauchtGiessen(beet, date, giessenLog, wetterDaten) {
 }
 
 export function brauchtDuengen(beet, date, duengenLog) {
-  if (!beet.pflanzen?.length) return { noetig: false };
+  const allePflanzen = beet.pflanzen?.length
+    ? beet.pflanzen
+    : (beet.reihen?.flatMap(r => r.kulturen || []) ?? []);
+  if (!allePflanzen.length) return { noetig: false };
   if (parseISO(beet.gepflanzt) > date) return { noetig: false, nochNichtGepflanzt: true };
 
-  const relevanteIntervalle = beet.pflanzen.map(p => {
+  const relevanteIntervalle = allePflanzen.map(p => {
     const info = findPflanze(p);
     return info?.duenger?.intervallWochen ?? null;
   }).filter(v => v !== null);
