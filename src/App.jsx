@@ -1735,45 +1735,66 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
   }
 
   function handlePrintBeete() {
-    const printWindow = window.open('', '_blank', 'width=900,height=700');
-    const isDark = document.documentElement.classList.contains('dark');
-    const rows = sorted.map(beet => {
-      let pflanzenHtml;
+    const printWindow = window.open('', '_blank', 'width=1000,height=800');
+
+    const beetCards = sorted.map(beet => {
+      const notiz = beetNotizen[beet.beet] || '';
+      const gepflanzt = format(parseISO(beet.gepflanzt), 'dd.MM.yyyy');
+      const faellig = format(parseISO(beet.faellig), 'dd.MM.yyyy');
+      const ernte = beet.erntbarIm?.join(', ') || '';
+      const name = beet.label || `Beet ${beet.beet}`;
+
+      let inhaltHtml;
       if (beet.reihen?.length > 0) {
-        const reihenItems = beet.reihen.map((r, i) => {
-          if (!r.kulturen?.length && !r.hinweis) return '';
-          const num = `<span class="reihe-nr">${i + 1}</span>`;
-          if (r.aussaat) {
-            return `<div class="reihe reihe-aussaat">${num}<span class="reihe-label">🌱 Aussaat</span> ${r.kulturen?.join(' · ') || ''}${r.hinweis ? ` <em>(${r.hinweis})</em>` : ''}</div>`;
-          }
-          if (r.abstand) {
-            return `<div class="reihe">${num}<span class="reihe-abstand">${r.abstand} cm</span> ${r.kulturen?.join(' · ') || ''}</div>`;
-          }
-          if (r.hinweis && !r.kulturen?.length) {
-            return `<div class="reihe reihe-hinweis">${num}<em>${r.hinweis}</em></div>`;
-          }
-          return `<div class="reihe">${num}${r.kulturen?.join(' · ') || ''}</div>`;
-        }).filter(Boolean).join('');
-        pflanzenHtml = `<div class="reihen">${reihenItems}</div>`;
+        // Reihen als Spalten — wie die physischen Schilder
+        const cols = beet.reihen.map((r, i) => {
+          const isAussaat = r.aussaat;
+          const kulturen = r.kulturen?.length
+            ? r.kulturen.map(k => `<div>${k}</div>`).join('')
+            : '';
+          const hinweis = r.hinweis ? `<div class="r-hint">${r.hinweis}</div>` : '';
+          const body = isAussaat
+            ? `${kulturen}<div class="r-aussaat">Aussaat</div>${hinweis}`
+            : `${kulturen}${hinweis}`;
+          const footer = r.abstand
+            ? `<td class="r-abstand"><strong>${r.abstand} cm</strong></td>`
+            : r.aussaat
+            ? `<td class="r-abstand r-aussaat-foot">Aussaat</td>`
+            : `<td class="r-abstand"></td>`;
+          return { num: i + 1, body, footer };
+        });
+
+        const headerCells = cols.map(c => `<th>${c.num}</th>`).join('');
+        const bodyCells   = cols.map(c => `<td>${c.body}</td>`).join('');
+        const footCells   = cols.map(c => c.footer).join('');
+
+        inhaltHtml = `
+          <table class="rt">
+            <thead><tr>${headerCells}</tr></thead>
+            <tbody><tr>${bodyCells}</tr></tbody>
+            <tfoot><tr>${footCells}</tr></tfoot>
+          </table>`;
       } else {
-        pflanzenHtml = (beet.pflanzen || []).map(p => {
+        // Kein Reihen-Layout: einfache Pflanzenliste
+        const pflanzen = (beet.pflanzen || []).map(p => {
           const n = pflanzeName(p);
           const info = findPflanze(n);
           return `${info?.icon || ''}${n}`;
         }).join(', ') || '–';
+        inhaltHtml = `<div class="simple-pflanzen">${pflanzen}</div>`;
       }
-      const ernte = beet.erntbarIm?.join(', ') || '–';
-      const notiz = beetNotizen[beet.beet] || '';
-      return `<tr>
-        <td>${beet.beet}</td>
-        <td>${beet.label || `Beet ${beet.beet}`}</td>
-        <td>${pflanzenHtml}</td>
-        <td>${format(parseISO(beet.gepflanzt), 'dd.MM.yyyy')}</td>
-        <td>${format(parseISO(beet.faellig), 'dd.MM.yyyy')}</td>
-        <td>${ernte}</td>
-        <td class="notiz">${notiz}</td>
-      </tr>`;
+
+      return `
+        <div class="beet-card">
+          <div class="beet-head">
+            <span class="beet-title">Beet ${beet.beet}${name !== `Beet ${beet.beet}` ? ` – ${name}` : ''}</span>
+            <span class="beet-dates">Gepflanzt: ${gepflanzt} · Fällig: ${faellig}${ernte ? ` · Ernte: ${ernte}` : ''}</span>
+          </div>
+          ${inhaltHtml}
+          ${notiz ? `<div class="beet-notiz">📝 ${notiz}</div>` : ''}
+        </div>`;
     }).join('');
+
     printWindow.document.write(`<!DOCTYPE html>
 <html lang="de">
 <head>
@@ -1781,35 +1802,41 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
 <title>Anbauplanung ${profileName} · ${format(new Date(), 'yyyy')}</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: system-ui, sans-serif; font-size: 12px; color: #111; padding: 24px 32px; }
-  h1 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
-  .meta { font-size: 11px; color: #666; margin-bottom: 20px; }
-  table { width: 100%; border-collapse: collapse; }
-  th { background: #16a34a; color: #fff; text-align: left; padding: 7px 10px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; }
-  td { padding: 7px 10px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
-  tr:nth-child(even) td { background: #f9fafb; }
-  .notiz { font-style: italic; color: #555; font-size: 11px; max-width: 160px; }
-  .reihen { display: flex; flex-direction: column; gap: 3px; }
-  .reihe { display: flex; align-items: baseline; gap: 5px; font-size: 11px; line-height: 1.4; padding: 2px 0; border-bottom: 1px solid #f0f0f0; }
-  .reihe:last-child { border-bottom: none; }
-  .reihe-nr { display: inline-flex; align-items: center; justify-content: center; min-width: 18px; height: 18px; background: #16a34a; color: #fff; border-radius: 50%; font-size: 9px; font-weight: 700; flex-shrink: 0; }
-  .reihe-aussaat .reihe-nr { background: #d97706; }
-  .reihe-hinweis .reihe-nr { background: #9ca3af; }
-  .reihe-label { font-weight: 600; color: #92400e; }
-  .reihe-abstand { font-weight: 600; color: #1d4ed8; font-size: 10px; }
-  .reihe-hinweis { color: #6b7280; }
-  @media print { body { padding: 0; } }
+  body { font-family: system-ui, sans-serif; font-size: 12px; color: #111; padding: 20px 24px; background: #f5f5f5; }
+  h1 { font-size: 18px; font-weight: 700; margin-bottom: 2px; }
+  .doc-meta { font-size: 11px; color: #666; margin-bottom: 16px; }
+  .grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
+
+  /* Beet-Karte */
+  .beet-card { background: #fff; border: 1px solid #d1d5db; border-radius: 8px; overflow: hidden; break-inside: avoid; }
+  .beet-head { background: #1a1a1a; color: #fff; padding: 7px 10px; display: flex; flex-direction: column; gap: 2px; }
+  .beet-title { font-size: 13px; font-weight: 700; }
+  .beet-dates { font-size: 10px; color: #aaa; }
+  .beet-notiz { font-size: 10px; color: #555; font-style: italic; padding: 5px 10px; border-top: 1px solid #e5e7eb; background: #fafafa; }
+
+  /* Reihen-Tabelle */
+  .rt { width: 100%; border-collapse: collapse; }
+  .rt thead th { background: #f3f4f6; border: 1px solid #d1d5db; text-align: center; padding: 4px 6px; font-size: 12px; font-weight: 700; width: auto; }
+  .rt tbody td { border: 1px solid #d1d5db; padding: 6px 8px; vertical-align: top; font-size: 11px; line-height: 1.5; }
+  .rt tfoot td { border: 1px solid #d1d5db; padding: 4px 8px; font-size: 11px; }
+  .r-abstand { font-weight: 700; color: #111; }
+  .r-aussaat-foot { color: #92400e; font-style: italic; }
+  .r-aussaat { font-size: 10px; font-style: italic; color: #92400e; margin-top: 2px; }
+  .r-hint { font-size: 10px; color: #6b7280; font-style: italic; margin-top: 2px; }
+
+  /* Einfache Liste */
+  .simple-pflanzen { padding: 8px 10px; font-size: 11px; line-height: 1.6; }
+
+  @media print {
+    body { padding: 0; background: #fff; }
+    .beet-card { break-inside: avoid; }
+  }
 </style>
 </head>
 <body>
 <h1>🌱 Anbauplanung ${profileName}</h1>
-<div class="meta">Erstellt am ${format(new Date(), 'dd.MM.yyyy')} · ${sorted.length} Beete</div>
-<table>
-  <thead><tr>
-    <th>#</th><th>Name</th><th>Pflanzen</th><th>Gepflanzt</th><th>Fällig</th><th>Ernte</th><th>Notiz</th>
-  </tr></thead>
-  <tbody>${rows}</tbody>
-</table>
+<div class="doc-meta">Erstellt am ${format(new Date(), 'dd.MM.yyyy')} · ${sorted.length} Beete</div>
+<div class="grid">${beetCards}</div>
 </body>
 </html>`);
     printWindow.document.close();
