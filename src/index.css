@@ -190,6 +190,29 @@
   }
 }
 
+@keyframes tabIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUpSheet {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes slideDownSheet {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+
+@media (max-width: 639px) {
+  [data-slot="dialog-content"][data-state="open"] {
+    animation: slideUpSheet 0.3s cubic-bezier(0.32, 0.72, 0, 1) forwards;
+  }
+  [data-slot="dialog-content"][data-state="closed"] {
+    animation: slideDownSheet 0.2s ease-in forwards;
+  }
+}
+
 @layer utilities {
   .animate-element {
     opacity: 0;
@@ -225,6 +248,10 @@
   .animate-delay-1000 { animation-delay: 1000ms; }
   .animate-delay-1200 { animation-delay: 1200ms; }
   .animate-delay-1400 { animation-delay: 1400ms; }
+
+  .animate-tab-in {
+    animation: tabIn 0.18s ease-out forwards;
+  }
 
   /* Custom checkbox for "Keep me signed in" */
   .custom-checkbox {

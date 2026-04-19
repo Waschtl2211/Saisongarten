@@ -1062,16 +1062,17 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, duengenLog, wetterDate
     });
   }
 
-  const FARBEN = {
-    warnung:     'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-700',
-    giessen:     'bg-cyan-50 dark:bg-cyan-900/20 border-cyan-200 dark:border-cyan-700',
-    duengen:     'bg-lime-50 dark:bg-lime-900/20 border-lime-200 dark:border-lime-700',
-    regen:       'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-700',
-    ernte:       'bg-amber-50 dark:bg-amber-900/20 border-amber-200 dark:border-amber-700',
-    rueckschnitt:'bg-teal-50 dark:bg-teal-900/20 border-teal-200 dark:border-teal-700',
-    raeumen:     'bg-violet-50 dark:bg-violet-900/20 border-violet-200 dark:border-violet-700',
-    auflocken:   'bg-stone-50 dark:bg-stone-900/20 border-stone-200 dark:border-stone-700',
-    pflanzen:    'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-700',
+  const STREIFEN = {
+    warnung:     'border-l-red-400 dark:border-l-red-500',
+    giessen:     'border-l-cyan-400 dark:border-l-cyan-500',
+    duengen:     'border-l-lime-400 dark:border-l-lime-500',
+    regen:       'border-l-sky-400 dark:border-l-sky-500',
+    ernte:       'border-l-amber-400 dark:border-l-amber-500',
+    rueckschnitt:'border-l-teal-400 dark:border-l-teal-500',
+    raeumen:     'border-l-violet-400 dark:border-l-violet-500',
+    auflocken:   'border-l-stone-400 dark:border-l-stone-500',
+    pflanzen:    'border-l-green-400 dark:border-l-green-500',
+    frost:       'border-l-blue-400 dark:border-l-blue-500',
   };
 
   const SEKTIONEN = [
@@ -1110,7 +1111,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, duengenLog, wetterDate
               <div className="flex items-center gap-2 mb-1.5">
                 <button
                   onClick={() => toggleSektion(sek.prio)}
-                  className="flex items-center gap-1.5 text-xs font-semibold text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors flex-1 text-left"
+                  className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 transition-colors flex-1 text-left"
                 >
                   <span className={`inline-block transition-transform duration-150 text-[10px] ${istEingeklappt ? '' : 'rotate-90'}`}>▶</span>
                   {sek.label}
@@ -1118,7 +1119,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, duengenLog, wetterDate
                 {sek.prio === 1 && items.length > 0 && onGiessenAlle && (
                   <button
                     onClick={() => onGiessenAlle(items.map(a => a.beetId).filter(Boolean))}
-                    className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 transition-colors border border-cyan-300 dark:border-cyan-600 rounded-full px-2 py-0.5 shrink-0"
+                    className="text-xs font-semibold text-cyan-600 dark:text-cyan-400 hover:text-cyan-800 dark:hover:text-cyan-200 transition-colors active:scale-[0.97] border border-cyan-300 dark:border-cyan-600 rounded-full px-2 py-0.5 shrink-0"
                   >
                     💧 Alle gießen
                   </button>
@@ -1126,14 +1127,14 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, duengenLog, wetterDate
                 {sek.prio === 2 && items.length > 1 && onDuengen && (
                   <button
                     onClick={(e) => { e.stopPropagation(); items.forEach(a => a.beetId != null && onDuengen(a.beetId, new Date())); }}
-                    className="text-xs font-semibold text-lime-600 dark:text-lime-400 hover:text-lime-800 dark:hover:text-lime-200 transition-colors border border-lime-300 dark:border-lime-600 rounded-full px-2 py-0.5 shrink-0"
+                    className="text-xs font-semibold text-lime-600 dark:text-lime-400 hover:text-lime-800 dark:hover:text-lime-200 transition-colors active:scale-[0.97] border border-lime-300 dark:border-lime-600 rounded-full px-2 py-0.5 shrink-0"
                   >
                     🌿 Alle düngen
                   </button>
                 )}
               </div>
               {!istEingeklappt && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                <div className="bg-white dark:bg-gray-800/80 rounded-2xl overflow-hidden shadow-sm shadow-black/5 dark:shadow-black/20 divide-y divide-gray-100 dark:divide-gray-700/50">
                   {items.map((a, i) => {
                     const globalIdx = aufgaben.indexOf(a);
                     const isOpen = aufgeklappt === globalIdx;
@@ -1142,7 +1143,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, duengenLog, wetterDate
                       <div
                         key={i}
                         onClick={() => hasDetails && toggleAufgabe(globalIdx)}
-                        className={`rounded-xl px-3 py-2.5 border transition-shadow ${FARBEN[a.typ] || 'bg-gray-50 dark:bg-gray-800/50 border-gray-200 dark:border-gray-700'} ${hasDetails ? 'cursor-pointer hover:shadow-sm active:opacity-80' : ''}`}
+                        className={`border-l-4 ${STREIFEN[a.typ] || 'border-l-gray-300 dark:border-l-gray-600'} px-3 py-2.5 transition-colors ${hasDetails ? 'cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700/50 active:bg-gray-100 dark:active:bg-gray-700' : ''}`}
                       >
                         <div className="flex items-start gap-2.5">
                           <span className="text-base leading-none shrink-0 mt-0.5">{a.icon}</span>
@@ -1164,7 +1165,7 @@ function TagesAufgaben({ beete, selectedDate, giessenLog, duengenLog, wetterDate
                             {a.typ === 'duengen' && onDuengen && a.beetId != null && (
                               <button
                                 onClick={(e) => { e.stopPropagation(); onDuengen(a.beetId, new Date()); }}
-                                className="mt-2 text-xs font-semibold text-lime-700 dark:text-lime-300 hover:text-lime-900 dark:hover:text-lime-100 transition-colors border border-lime-300 dark:border-lime-600 rounded-full px-2 py-0.5"
+                                className="mt-2 text-xs font-semibold text-lime-700 dark:text-lime-300 hover:text-lime-900 dark:hover:text-lime-100 transition-colors active:scale-[0.97] border border-lime-300 dark:border-lime-600 rounded-full px-2 py-0.5"
                               >
                                 ✓ Gedüngt
                               </button>
@@ -1347,13 +1348,13 @@ function BottomNav({ activeTab, onTabChange }) {
     { id: 'chatbot', icon: '🤖', label: 'Assistent' },
   ];
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700">
+    <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/80 dark:bg-gray-900/80 backdrop-blur-xl border-t border-black/5 dark:border-white/10">
       <div className="flex">
         {tabs.map(t => (
           <button
             key={t.id}
             onClick={() => onTabChange(t.id)}
-            className={`flex-1 flex flex-col items-center py-2 gap-0.5 text-xs transition-colors ${
+            className={`flex-1 flex flex-col items-center py-2 gap-0.5 text-xs transition-colors active:scale-[0.97] ${
               activeTab === t.id
                 ? 'text-green-600 dark:text-green-400 font-semibold'
                 : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'
@@ -2007,7 +2008,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
       <div className="max-w-7xl mx-auto px-4 pt-5 pb-3 flex flex-col sm:flex-row items-center sm:items-center justify-between gap-3">
         {/* Titel + Profil-Avatar */}
         <div className="flex items-center gap-3 shrink-0">
-          <span className="text-xl font-bold tracking-tight bg-gradient-to-r from-green-600 to-emerald-500 dark:from-green-400 dark:to-emerald-300 bg-clip-text text-transparent select-none">🌱 Saisongarten</span>
+          <span className="text-xl font-semibold tracking-tight bg-gradient-to-r from-green-600 to-emerald-500 dark:from-green-400 dark:to-emerald-300 bg-clip-text text-transparent select-none">🌱 Saisongarten</span>
           <span className="text-xs text-gray-400 dark:text-gray-500 font-normal hidden sm:inline">2026</span>
           {/* Profil-Wechsler */}
           <button
@@ -2268,6 +2269,8 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
         </div>
       )}
 
+      <div key={activeTab} className="animate-tab-in">
+
       {activeTab === 'heute' && (
         <>
           <WetterStreifen
@@ -2372,7 +2375,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
                     }`}
                   >
                     {isErntemonat && !isFaellig && (
-                      <div className="rounded-t-xl bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-3 py-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1">
+                      <div className="rounded-t-2xl bg-amber-50 dark:bg-amber-900/30 border-b border-amber-200 dark:border-amber-700 px-3 py-1.5 text-sm font-semibold text-amber-700 dark:text-amber-300 flex items-center gap-1">
                         🌾 Erntezeit
                       </div>
                     )}
@@ -2741,6 +2744,8 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
         </div>
 
       </main>}
+
+      </div>{/* animate-tab-in */}
 
       <footer className="text-center py-6 text-xs text-gray-500 dark:text-gray-400">
         &copy; 2026 Saisongarten App
