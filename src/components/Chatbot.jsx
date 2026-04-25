@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { format, parseISO } from 'date-fns';
-import { de } from 'date-fns/locale';
+import { format } from 'date-fns';
 import { pflanzDatenbank, findPflanze, getNeighborRelation } from '../data/plantDatabase';
 
 const DE_MONATE = ['', 'Januar', 'Februar', 'März', 'April', 'Mai', 'Juni',
@@ -27,10 +26,7 @@ function antwort(text, beete, selectedDate) {
   const monatName = DE_MONATE[monat];
 
   // ── Pflanzzeit abfragen ─────
-  const pflanzMatch = lc.match(/wann (?:pflanz|s[äa]|pflanzen|s[äa]en|anbauen|aus(?:s[äa]en)?)(?:e ich)?\s+(.+?)[\?\s]*$/);
-  const wannPflanzPflanze = pflanzMatch
-    ? findPflanze(pflanzMatch[1].trim())
-    : lc.match(/pflanzzeit|wann pflanzen|wann s[äa]en/) ? null : null;
+  const pflanzMatch = lc.match(/wann (?:pflanz|s[äa]|pflanzen|s[äa]en|anbauen|aus(?:s[äa]en)?)(?:e ich)?\s+(.+?)[? ]*$/);
 
   if (pflanzMatch) {
     const suchName = pflanzMatch[1].trim();
@@ -45,8 +41,8 @@ function antwort(text, beete, selectedDate) {
   }
 
   // ── Erntezeit abfragen ─────
-  const ernteMatch = lc.match(/wann (?:ernte|ernten|geerntet)(?:e ich)?\s+(.+?)[\?\s]*$/) ||
-    lc.match(/ernte(?:zeit)?\s+(?:von |bei )?\s*(.+?)[\?\s]*$/);
+  const ernteMatch = lc.match(/wann (?:ernte|ernten|geerntet)(?:e ich)?\s+(.+?)[? ]*$/) ||
+    lc.match(/ernte(?:zeit)?\s+(?:von |bei )?\s*(.+?)[? ]*$/);
   if (ernteMatch) {
     const suchName = ernteMatch[1].trim();
     const beetEntry = findPflanzeInBeete(suchName, beete);
@@ -60,7 +56,7 @@ function antwort(text, beete, selectedDate) {
   }
 
   // ── Nachbarn gut/schlecht abfragen ─────
-  const nachbarMatch = lc.match(/(?:vertrag|vertr[äa]gt|passen?|harmonier|nachbar|kombinier)(?:en|en sich)?\s+(.+?)\s+(?:und|mit|neben)\s+(.+?)[\?\s]*$/);
+  const nachbarMatch = lc.match(/(?:vertrag|vertr[äa]gt|passen?|harmonier|nachbar|kombinier)(?:en|en sich)?\s+(.+?)\s+(?:und|mit|neben)\s+(.+?)[? ]*$/);
   if (nachbarMatch) {
     const p1 = findPflanze(nachbarMatch[1].trim());
     const p2 = findPflanze(nachbarMatch[2].trim());
@@ -106,7 +102,7 @@ function antwort(text, beete, selectedDate) {
   }
 
   // ── Hilfreiche Nachbarn für eine Pflanze ─────
-  const gutNachbarMatch = lc.match(/(?:gute nachbarn?|passt (?:gut )?zu|vertr[äa]gt sich mit|gut (?:neben|mit|bei)) (.+?)[\?\s]*$/);
+  const gutNachbarMatch = lc.match(/(?:gute nachbarn?|passt (?:gut )?zu|vertr[äa]gt sich mit|gut (?:neben|mit|bei)) (.+?)[? ]*$/);
   if (gutNachbarMatch) {
     const info = findPflanze(gutNachbarMatch[1].trim());
     if (info) {
@@ -121,7 +117,7 @@ function antwort(text, beete, selectedDate) {
   }
 
   // ── Nachkultur ─────
-  const nachMatch = lc.match(/(?:nach(?:folger|kultur|anbau)|was danach|was nach) (.+?)[\?\s]*$/) ||
+  const nachMatch = lc.match(/(?:nach(?:folger|kultur|anbau)|was danach|was nach) (.+?)[? ]*$/) ||
     lc.match(/(.+?) (?:geerntet|abgeräumt|was kommt dann|was pflanzen|nachher|danach)/);
   if (nachMatch) {
     const info = findPflanze(nachMatch[1].trim());

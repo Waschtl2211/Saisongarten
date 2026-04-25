@@ -100,7 +100,7 @@ function PlusKachel({ onAdd, modus }) {
   );
 }
 
-export default function PflanzenGrid({ pflanzen, modus, selectedDate, giessenLog, wetterDaten, beetId, onPflanzenChange, onEditPflanze, onAddPflanze }) {
+export default function PflanzenGrid({ pflanzen, modus, selectedDate, giessenLog, beetId, onPflanzenChange, onEditPflanze, onAddPflanze }) {
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
     useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),

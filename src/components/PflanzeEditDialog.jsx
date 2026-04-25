@@ -23,8 +23,8 @@ export default function PflanzeEditDialog({ open, pflanze, onSave, onDelete, onC
   const [form, setForm] = useState(EMPTY_ENTRY);
 
   useEffect(() => {
-    if (pflanze) setForm({ ...EMPTY_ENTRY, ...pflanze });
-    else setForm(EMPTY_ENTRY);
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setForm(pflanze ? { ...EMPTY_ENTRY, ...pflanze } : EMPTY_ENTRY);
   }, [pflanze]);
 
   function set(field, value) {

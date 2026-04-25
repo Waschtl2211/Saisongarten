@@ -1,6 +1,5 @@
 import { format, parseISO, differenceInDays } from 'date-fns';
 import { findPflanze } from '../data/plantDatabase.js';
-import { pflanzeName } from './plantMigration.js';
 
 export function getWetterFuerTag(date, wetterDaten) {
   if (!wetterDaten?.daily) return null;

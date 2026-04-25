@@ -9,7 +9,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import Chatbot from './components/Chatbot';
 import { lsGet, lsSet, exportProfileData, importProfileData } from './lib/storage.js';
-import { getWetterFuerTag, berechneGiessIntervall, berechneRegenCredits, brauchtGiessen, brauchtDuengen } from './lib/gardenLogic.js';
+import { getWetterFuerTag, brauchtGiessen, brauchtDuengen } from './lib/gardenLogic.js';
 import { DndContext, closestCenter, PointerSensor, TouchSensor, useSensor, useSensors } from '@dnd-kit/core';
 import { SortableContext, rectSortingStrategy, useSortable, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
@@ -750,7 +750,7 @@ function WetterStreifen({ wetterDaten, wetterLaedt, wetterFehler, standort, sele
                           )}
                         </>
                       ) : (
-                        <span className="text-[10px] text-gray-300 dark:text-gray-600">☔️​–</span>
+                        <span className="text-[10px] text-gray-300 dark:text-gray-600">{"☔️–"}</span>
                       )}
                     </div>
                   </>
@@ -1523,7 +1523,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
   const [beeteZugeklappt, setBeeteZugeklappt] = useState(false);
   const [archivZugeklappt, setArchivZugeklappt] = useState(false);
   const [expandedBeet, setExpandedBeet] = useState(null);
-  const [pinnedBeete, setPinnedBeete] = useState(() => {
+  const [pinnedBeete, _setPinnedBeete] = useState(() => {
     try { return new Set(JSON.parse(lsGet('pinnedBeete', profileId) || '[]')); } catch { return new Set(); }
   });
   const [beetFilter, setBeetFilter] = useState('alle');
@@ -1573,7 +1573,6 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
   const [beetOrder, setBeetOrder] = useState(() => {
     try { return JSON.parse(lsGet('beetOrder', profileId) || 'null'); } catch { return null; }
   });
-  const [accentColor, setAccentColor] = useState(() => localStorage.getItem('accentColor') || 'green');
   const [kartenAnsicht, setKartenAnsicht] = useState(() => localStorage.getItem('kartenAnsicht') || 'minimal');
   const [kartenLayout, setKartenLayout] = useState(() => localStorage.getItem('kartenLayout') || 'grid');
   const [fontSize, setFontSize] = useState(() => localStorage.getItem('fontSize') || 'md');
@@ -1586,11 +1585,11 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
     try {
       lsSet('beete', JSON.stringify(beete), profileId);
       lsSet('beetDataVersion', GARDEN_DATA_VERSION, profileId);
-    } catch {}
+    } catch { /* ignore storage errors */ }
   }, [beete, profileId]);
 
   useEffect(() => {
-    try { lsSet('archivierteBeete', JSON.stringify(archivierteBeete), profileId); } catch {}
+    try { lsSet('archivierteBeete', JSON.stringify(archivierteBeete), profileId); } catch { /* ignore storage errors */ }
   }, [archivierteBeete, profileId]);
 
   useEffect(() => {
@@ -1632,27 +1631,27 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
 
   // GießenLog persistent speichern
   useEffect(() => {
-    try { lsSet('giessenLog', JSON.stringify(giessenLog), profileId); } catch {}
+    try { lsSet('giessenLog', JSON.stringify(giessenLog), profileId); } catch { /* ignore */ }
   }, [giessenLog, profileId]);
 
   useEffect(() => {
-    try { lsSet('duengenLog', JSON.stringify(duengenLog), profileId); } catch {}
+    try { lsSet('duengenLog', JSON.stringify(duengenLog), profileId); } catch { /* ignore */ }
   }, [duengenLog, profileId]);
 
   useEffect(() => {
-    try { lsSet('pinnedBeete', JSON.stringify([...pinnedBeete]), profileId); } catch {}
+    try { lsSet('pinnedBeete', JSON.stringify([...pinnedBeete]), profileId); } catch { /* ignore */ }
   }, [pinnedBeete, profileId]);
 
   useEffect(() => {
-    try { lsSet('beetNotizen', JSON.stringify(beetNotizen), profileId); } catch {}
+    try { lsSet('beetNotizen', JSON.stringify(beetNotizen), profileId); } catch { /* ignore */ }
   }, [beetNotizen, profileId]);
 
   useEffect(() => {
-    try { lsSet('ernteLog', JSON.stringify(ernteLog), profileId); } catch {}
+    try { lsSet('ernteLog', JSON.stringify(ernteLog), profileId); } catch { /* ignore */ }
   }, [ernteLog, profileId]);
 
   useEffect(() => {
-    try { if (beetOrder !== null) lsSet('beetOrder', JSON.stringify(beetOrder), profileId); } catch {}
+    try { if (beetOrder !== null) lsSet('beetOrder', JSON.stringify(beetOrder), profileId); } catch { /* ignore */ }
   }, [beetOrder, profileId]);
 
   // Geo-Location einmalig holen – nur wenn noch kein gespeicherter Standort
@@ -1663,7 +1662,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
       pos => {
         const s = { lat: pos.coords.latitude, lon: pos.coords.longitude };
         setStandort(s);
-        try { localStorage.setItem('standort', JSON.stringify(s)); } catch {}
+        try { localStorage.setItem('standort', JSON.stringify(s)); } catch { /* ignore */ }
       },
       () => setWetterFehler('Standortzugriff abgelehnt')
     );
@@ -1921,7 +1920,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
     const archivedBeet = archivierteBeete.find(b => b.beet === id);
     if (!archivedBeet) return;
 
-    const { archiviertAm, eingefrorenAm, eingefrorenerStatus, ...restoredBeet } = archivedBeet;
+    const { archiviertAm: _a, eingefrorenAm: _e, eingefrorenerStatus: _s, ...restoredBeet } = archivedBeet;
 
     setArchivierteBeete(prev => prev.filter(b => b.beet !== id));
     setBeete(prev => [...prev, restoredBeet]);
@@ -2000,27 +1999,6 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
     });
   }
 
-  function handleAlleDuengen(beetIds) {
-    saveSnapshot();
-    const dateStr = format(selectedDate, 'yyyy-MM-dd');
-    setDuengenLog(prev => {
-      const next = { ...prev };
-      for (const id of beetIds) {
-        const current = next[id] || [];
-        if (!current.includes(dateStr)) next[id] = [...current, dateStr];
-      }
-      return next;
-    });
-  }
-
-  function togglePin(beetId) {
-    setPinnedBeete(prev => {
-      const n = new Set(prev);
-      n.has(beetId) ? n.delete(beetId) : n.add(beetId);
-      return n;
-    });
-  }
-
   function setNotiz(beetId, text) {
     setBeetNotizen(prev => ({ ...prev, [beetId]: text }));
   }
@@ -2039,7 +2017,7 @@ function App({ profileId, profileName, profileColor, onSwitchProfile, onRenamePr
 
   function handleOrtsWahl(stadt) {
     const s = { lat: stadt.lat, lon: stadt.lon, name: stadt.name };
-    try { localStorage.setItem('standort', JSON.stringify(s)); } catch {}
+    try { localStorage.setItem('standort', JSON.stringify(s)); } catch { /* ignore */ }
     setStandort(s);
     setWetterFehler(null);
   }

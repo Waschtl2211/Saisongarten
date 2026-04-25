@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import { StrictMode, useState, useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import GoTrue from 'gotrue-js';
@@ -286,7 +287,7 @@ function Root() {
   async function handleSignOut() {
     try {
       await user.logout();
-    } catch (_) {
+    } catch {
       // ignore logout errors
     }
     setUser(null);
