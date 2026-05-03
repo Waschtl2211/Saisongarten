@@ -31,7 +31,7 @@ export default defineConfig({
             handler: 'NetworkOnly',
           },
           {
-            urlPattern: /^https:\/\/api\.open-meteo\.com\/.*/i,
+            urlPattern: /^https:\/\/api\.brightsky\.dev\/.*/i,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'weather-cache',

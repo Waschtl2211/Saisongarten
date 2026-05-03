@@ -117,13 +117,60 @@ const STAEDTE = [
   { name: 'Salzburg',  lat: 47.8095, lon: 13.0550 },
 ];
 
+const ICON_ZU_CODE = {
+  'clear-day': 0, 'clear-night': 0,
+  'partly-cloudy-day': 2, 'partly-cloudy-night': 2,
+  'cloudy': 3, 'fog': 45, 'wind': 20,
+  'rain': 80, 'sleet': 67, 'snow': 73,
+  'hail': 89, 'thunderstorm': 95,
+};
+
+function transformBrightsky(weather) {
+  const byDate = {};
+  for (const h of weather) {
+    const ts = h.timestamp;          // "2024-01-15T00:00:00+01:00"
+    const dateStr = ts.slice(0, 10); // "yyyy-MM-dd"
+    const timeStr = `${dateStr}T${ts.slice(11, 16)}`; // "yyyy-MM-ddTHH:mm"
+    if (!byDate[dateStr]) byDate[dateStr] = [];
+    byDate[dateStr].push({ ...h, timeStr });
+  }
+
+  const daily = { time: [], temperature_2m_max: [], temperature_2m_min: [], precipitation_sum: [], precipitation_probability_max: [] };
+  const hourly = { time: [], temperature_2m: [], precipitation: [], weathercode: [] };
+
+  for (const dateStr of Object.keys(byDate).sort()) {
+    const hours = byDate[dateStr];
+    const temps = hours.map(h => h.temperature).filter(t => t != null);
+    const precs = hours.map(h => h.precipitation ?? 0);
+
+    daily.time.push(dateStr);
+    daily.temperature_2m_max.push(temps.length ? Math.max(...temps) : null);
+    daily.temperature_2m_min.push(temps.length ? Math.min(...temps) : null);
+    daily.precipitation_sum.push(Math.round(precs.reduce((a, b) => a + b, 0) * 10) / 10);
+    daily.precipitation_probability_max.push(Math.round(precs.filter(p => p > 0).length / hours.length * 100));
+
+    for (const h of hours) {
+      hourly.time.push(h.timeStr);
+      hourly.temperature_2m.push(h.temperature);
+      hourly.precipitation.push(h.precipitation ?? 0);
+      hourly.weathercode.push(ICON_ZU_CODE[h.icon] ?? 3);
+    }
+  }
+
+  return { daily, hourly };
+}
+
 function fetchWetter(lat, lon, onData, onLaden, onFehler) {
   onLaden(true);
+  const past = new Date(); past.setDate(past.getDate() - 14);
+  const future = new Date(); future.setDate(future.getDate() + 7);
+  const dateFrom = format(past, 'yyyy-MM-dd');
+  const dateTo = format(future, 'yyyy-MM-dd');
   fetch(
-    `https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(4)}&longitude=${lon.toFixed(4)}&daily=temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max&hourly=temperature_2m,precipitation,weathercode&timezone=Europe%2FBerlin&past_days=14&forecast_days=7`
+    `https://api.brightsky.dev/weather?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&date=${dateFrom}&last_date=${dateTo}&tz=Europe%2FBerlin`
   )
     .then(r => { if (!r.ok) throw new Error('HTTP ' + r.status); return r.json(); })
-    .then(data => { onData(data); onLaden(false); })
+    .then(({ weather }) => { onData(transformBrightsky(weather)); onLaden(false); })
     .catch(() => { onFehler('Wetter konnte nicht geladen werden'); onLaden(false); });
 }
 
